@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kaizen
+      POSTGRES_USER: kaizen
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kaizen}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kaizen"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://kaizen:${DB_PASSWORD:-kaizen}@db:5432/kaizen?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      NOTIFY_WEBHOOK_URL: ${NOTIFY_WEBHOOK_URL:-}
+    volumes: [uploads:/app/data/uploads]
+    ports: ["8080:8080"]
+
+  # Daily logical backup, keeps 14 days.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on: [db]
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-kaizen}
+    volumes: [./backups:/backups]
+    entrypoint: >
+      sh -c 'while true; do
+        pg_dump -h db -U kaizen -Fc kaizen > /backups/kaizen_$$(date +%Y%m%d_%H%M).dump &&
+        find /backups -name "*.dump" -mtime +14 -delete;
+        sleep 86400; done'
+
+volumes:
+  pgdata:
+  uploads:
