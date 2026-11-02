@@ -2,6 +2,10 @@
 
 Hệ thống quản lý Kaizen & Sáng kiến cải tiến nhà máy — triển khai theo tài liệu [SADD](docs/SADD.md).
 
+<p align="center">
+  <a href="https://thinhstudio.github.io/KaizenSystem/"><img src="https://img.shields.io/badge/%E2%96%B6%20M%E1%BB%9F%20trang%20demo-17694a?style=for-the-badge" alt="Mở trang demo" height="40"></a>
+</p>
+
 ![Tổng quan](docs/screenshot-home.png)
 
 - **Backend:** Go 1.26 (`net/http`, pgx) — REST API `/api/v1`, JWT + RBAC, workflow đa cấp, audit log.
@@ -33,7 +37,7 @@ Bản demo chạy hoàn toàn trong trình duyệt (mock backend `backend/web/js
 
 - Build: `python3 scripts/build-demo.py` → `demo/index.html` (một file duy nhất, mở trực tiếp được).
 - GitHub Pages: workflow `.github/workflows/pages.yml` tự deploy mỗi lần push lên `main`
-  (bật một lần: **Settings → Pages → Source: GitHub Actions**). Địa chỉ: `https://thinhstudio.github.io/KaizenSystem/`.
+  (bật một lần: **Settings → Pages → Source: GitHub Actions**). Địa chỉ: [https://thinhstudio.github.io/KaizenSystem/](https://thinhstudio.github.io/KaizenSystem/).
 
 ## Chạy nhanh (Docker)
 
