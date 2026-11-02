@@ -1,8 +1,20 @@
+import { mockApi, mockFileUrl } from './mock.js';
+
+export const DEMO = !!window.KAIZEN_DEMO;
+
+// Storage can throw (private mode, sandboxed frames): fall back to memory.
+const mem = {};
+const store = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return mem[k] ?? null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { mem[k] = v; } },
+  del: (k) => { try { localStorage.removeItem(k); } catch { delete mem[k]; } },
+};
+
 export const session = {
-  get token() { return localStorage.getItem('kz_token'); },
-  get user() { try { return JSON.parse(localStorage.getItem('kz_user')); } catch { return null; } },
-  set(token, user) { localStorage.setItem('kz_token', token); localStorage.setItem('kz_user', JSON.stringify(user)); },
-  clear() { localStorage.removeItem('kz_token'); localStorage.removeItem('kz_user'); },
+  get token() { return store.get('kz_token'); },
+  get user() { try { return JSON.parse(store.get('kz_user')); } catch { return null; } },
+  set(token, user) { store.set('kz_token', token); store.set('kz_user', JSON.stringify(user)); },
+  clear() { store.del('kz_token'); store.del('kz_user'); },
 };
 
 export class ApiError extends Error {
@@ -10,6 +22,13 @@ export class ApiError extends Error {
 }
 
 export async function api(path, { method = 'GET', body, form } = {}) {
+  if (DEMO) {
+    try { return await mockApi(path, { method, body, form }, session.token); }
+    catch (e) {
+      if (e.status === 401 && path !== '/auth/login') { session.clear(); location.hash = '#/login'; }
+      throw new ApiError(e.status || 500, e.message);
+    }
+  }
   const headers = {};
   if (session.token) headers.Authorization = 'Bearer ' + session.token;
   let payload;
@@ -22,4 +41,4 @@ export async function api(path, { method = 'GET', body, form } = {}) {
   return data;
 }
 
-export const fileUrl = (id) => `/api/v1/attachments/${id}/file?token=${encodeURIComponent(session.token)}`;
+export const fileUrl = (id) => (DEMO ? mockFileUrl(id) : `/api/v1/attachments/${id}/file?token=${encodeURIComponent(session.token)}`);

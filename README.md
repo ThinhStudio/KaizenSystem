@@ -8,6 +8,14 @@ Hệ thống quản lý Kaizen & Sáng kiến cải tiến nhà máy — triển
 - **Storage:** Local file store (interface `storage.Store` sẵn sàng thay bằng MinIO/S3).
 - **Thông báo:** Telegram Bot và/hoặc webhook chung (Zalo OA bridge, n8n, Slack…).
 
+## Bản demo trực tuyến
+
+Bản demo chạy hoàn toàn trong trình duyệt (mock backend `backend/web/js/mock.js`, dữ liệu lưu localStorage), không cần server:
+
+- Build: `python3 scripts/build-demo.py` → `demo/index.html` (một file duy nhất, mở trực tiếp được).
+- GitHub Pages: workflow `.github/workflows/pages.yml` tự deploy mỗi lần push lên `main`
+  (bật một lần: **Settings → Pages → Source: GitHub Actions**). Địa chỉ: `https://thinhstudio.github.io/KaizenSystem/`.
+
 ## Chạy nhanh (Docker)
 
 ```bash

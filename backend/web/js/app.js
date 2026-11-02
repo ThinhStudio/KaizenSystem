@@ -1,4 +1,5 @@
-import { api, session, fileUrl } from './api.js';
+import { api, session, fileUrl, DEMO } from './api.js';
+import { resetDemo } from './mock.js';
 import { queue, pending, sync, toForm } from './offline.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -38,7 +39,7 @@ async function render() {
   const [name, id] = path.split('/');
   const params = new URLSearchParams(query || '');
   if (!session.token && name !== 'login') {
-    if (params.get('line')) sessionStorage.setItem('kz_line', params.get('line'));
+    if (params.get('line')) try { sessionStorage.setItem('kz_line', params.get('line')); } catch {}
     location.hash = '#/login'; return;
   }
   $('#nav').hidden = !session.token; $('#logout').hidden = !session.token;
@@ -57,16 +58,25 @@ function viewLogin() {
     <h2>Đăng nhập</h2>
     <form id="f"><label>Mã nhân viên</label><input name="employee_code" required autocomplete="username">
     <label>Mật khẩu</label><input name="password" type="password" required autocomplete="current-password">
-    <p><button>Đăng nhập</button></p></form></div>`;
-  $('#f').onsubmit = async (e) => {
-    e.preventDefault();
-    const fd = Object.fromEntries(new FormData(e.target));
+    <p><button>Đăng nhập</button></p></form>
+    ${DEMO ? `<div class="demo-login"><p class="meta">Bản demo: dữ liệu chỉ lưu trong trình duyệt của bạn. Chọn vai trò để đăng nhập nhanh:</p>
+      <div class="row">${[['CN001', 'Công nhân'], ['TT001', 'Tổ trưởng'], ['IE001', 'Ban Kaizen / IE'], ['KT001', 'Kế toán'], ['GD001', 'Giám đốc']]
+        .map(([c, l]) => `<button class="sec" data-quick="${c}">${l}<br><small>${c}</small></button>`).join('')}</div>
+      <p><button class="link" id="reset">Khôi phục dữ liệu mẫu</button></p></div>` : ''}</div>`;
+  const doLogin = async (fd) => {
     try {
       const r = await api('/auth/login', { method: 'POST', body: fd });
       session.set(r.token, r.user);
-      const line = sessionStorage.getItem('kz_line'); sessionStorage.removeItem('kz_line');
+      let line = null;
+      try { line = sessionStorage.getItem('kz_line'); sessionStorage.removeItem('kz_line'); } catch {}
       location.hash = line ? `#/new?line=${line}` : '#/';
     } catch (err) { toast(err.message); }
+  };
+  app.querySelectorAll('[data-quick]').forEach((b) => (b.onclick = () => doLogin({ employee_code: b.dataset.quick, password: '123456' })));
+  const rs = $('#reset'); if (rs) rs.onclick = () => { resetDemo(); toast('Đã khôi phục dữ liệu mẫu'); };
+  $('#f').onsubmit = async (e) => {
+    e.preventDefault();
+    doLogin(Object.fromEntries(new FormData(e.target)));
   };
 }
 
@@ -241,12 +251,13 @@ async function viewDashboard() {
       <div class="row"><span style="width:180px">${esc(c.category)}</span><div class="grow"><div class="bar" style="width:${(c.total / max) * 100}%"></div></div><b>${c.total}</b></div>`).join('') || '<span class="meta">Chưa có dữ liệu</span>'}</div>
     <div class="card"><h3>Top đóng góp</h3><table><tr><th>Nhân viên</th><th>Xưởng</th><th class="num">Ý tưởng</th><th class="num">Điểm</th></tr>
       ${s.top_contributors.map((t) => `<tr><td>${esc(t.full_name)}</td><td>${esc(t.workshop)}</td><td class="num">${t.ideas}</td><td class="num">${t.points}</td></tr>`).join('')}</table></div>
-    ${roi.length ? `<div class="card"><h3>ROI theo xưởng / tháng</h3><table><tr><th>Tháng</th><th>Xưởng</th><th class="num">Dự án</th><th class="num">Đầu tư</th><th class="num">Tiết kiệm/năm</th><th class="num">ROI</th><th class="num">Hoàn vốn</th></tr>
-      ${roi.map((x) => `<tr><td>${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="num">${x.projects}</td><td class="num">${money(x.investment)}</td><td class="num">${money(x.annual_saving)}</td><td class="num">${x.roi_percent ?? '—'} %</td><td class="num">${x.payback_months ?? '—'} th</td></tr>`).join('')}</table></div>` : ''}`;
+    ${roi.length ? `<div class="card"><h3>ROI theo xưởng / tháng</h3><div class="table-wrap"><table><tr><th>Tháng</th><th>Xưởng</th><th class="num">Dự án</th><th class="num">Đầu tư</th><th class="num">Tiết kiệm/năm</th><th class="num">ROI</th><th class="num">Hoàn vốn</th></tr>
+      ${roi.map((x) => `<tr><td>${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="num">${x.projects}</td><td class="num">${money(x.investment)}</td><td class="num">${money(x.annual_saving)}</td><td class="num">${x.roi_percent ?? '—'} %</td><td class="num">${x.payback_months ?? '—'} th</td></tr>`).join('')}</table></div></div>` : ''}`;
 }
 
 // ---------------- boot ----------------
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+if (!DEMO && 'serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+if (DEMO) document.body.classList.add('demo');
 updateNet();
 render();
 sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`));

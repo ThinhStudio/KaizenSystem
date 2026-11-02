@@ -4,7 +4,7 @@ import { api } from './api.js';
 
 const DB = 'kaizen-offline', STORE = 'outbox';
 
-function db() {
+function idb() {
   return new Promise((ok, fail) => {
     const req = indexedDB.open(DB, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'client_uuid' });
@@ -14,7 +14,7 @@ function db() {
 }
 
 async function tx(mode, fn) {
-  const d = await db();
+  const d = await idb();
   return new Promise((ok, fail) => {
     const t = d.transaction(STORE, mode);
     const r = fn(t.objectStore(STORE));
