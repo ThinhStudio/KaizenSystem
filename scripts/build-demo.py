@@ -11,7 +11,7 @@ out = root / "demo" / "index.html"
 
 css = (web / "app.css").read_text()
 js = []
-for name in ["mock.js", "offline.js", "api.js", "lean.js", "charts.js", "app.js"]:
+for name in ["mock.js", "offline.js", "api.js", "lean.js", "charts.js", "i18n.js", "app.js"]:
     src = (web / "js" / name).read_text()
     src = re.sub(r"^import .*?;\n", "", src, flags=re.M)        # modules are concatenated
     src = re.sub(r"^export (async function|function|const|class|let)", r"\1", src, flags=re.M)

@@ -95,6 +95,12 @@ p { margin: 0; }
 .tabbar { display: none; }
 .scrim { display: none; }
 
+/* ---------- language switcher ---------- */
+.lang { position: relative; display: inline-flex; align-items: center; color: var(--muted); }
+.lang .ic { position: absolute; left: 9px; pointer-events: none; }
+.lang select { width: auto; padding: 6px 10px 6px 30px; font-size: 13px; font-weight: 600; border-radius: 20px; background: var(--surface); cursor: pointer; }
+@media (max-width: 720px) { .top .lang select { width: 64px; color: transparent; } .top .lang select option { color: var(--ink); } .top .lang::after { content: attr(data-short); position: absolute; left: 30px; font-size: 13px; font-weight: 700; color: var(--ink); pointer-events: none; } }
+
 /* ---------- primitives ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 600; font-size: 14px; padding: 9px 16px; border-radius: 9px; border: 1px solid transparent; cursor: pointer; background: var(--brand); color: var(--brand-ink); white-space: nowrap; transition: background .15s, transform .05s; }
 .btn:hover { background: var(--brand-strong); }
@@ -497,6 +503,7 @@ tr.me td { background: var(--brand-soft); }
         <button class="icon-btn menu-btn" id="menu" aria-label="Mở menu"></button>
         <div class="crumb" id="crumb"></div>
         <span id="demo-tag"></span>
+        <span id="lang"></span>
         <span class="net" id="net"><span class="net-txt">Trực tuyến</span></span>
         <a class="btn top-new" href="#/new" id="top-new"></a>
       </header>
@@ -1113,6 +1120,7 @@ const ICON_PATHS = {
   road: 'M4 22 9 2M20 22 15 2M12 6v2M12 12v2M12 18v2',
   link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
   copy: 'M9 9h12v12H9zM5 15H3V3h12v2',
+  globe: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20',
 };
 
 function icon(name, size = 20, cls = '') {
@@ -1216,14 +1224,14 @@ function niceMax(v) {
 }
 
 // Grouped vertical bars. series: [{key,label,cls}], rows: [{label, [key]: n}]
-function columnChart(rows, series, { height = 220 } = {}) {
+function columnChart(rows, { aria = '', height = 220 } = {}, series = []) {
   const W = 640, H = height, L = 34, B = 26, T = 10, R = 6;
   const max = niceMax(Math.max(1, ...rows.flatMap((r) => series.map((s) => +r[s.key] || 0))));
   const pw = (W - L - R) / rows.length, gap = 2;
   const bw = Math.min(18, (pw * 0.62 - gap * (series.length - 1)) / series.length);
   const y = (v) => T + (H - T - B) * (1 - v / max);
   const ticks = [0, max / 2, max];
-  let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${series.map((s) => s.label).join(', ')} theo tháng">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${aria}">`;
   ticks.forEach((t) => {
     svg += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" class="grid${t === 0 ? ' base' : ''}"/>`;
     svg += `<text x="${L - 6}" y="${y(t) + 4}" class="axis" text-anchor="end">${fmtN(t)}</text>`;
@@ -1272,6 +1280,609 @@ function spark(values, w = 96, h = 28) {
     <circle cx="${last[0]}" cy="${last[1]}" r="2.6" class="spark-dot"/></svg>`;
 }
 
+// ---- i18n.js ----
+// i18n: Vietnamese is the source language; strings are keyed by their Vietnamese text.
+// [English, 简体中文, Bahasa Indonesia]. Missing entries fall back to Vietnamese.
+// Static UI text is translated automatically by a DOM observer; text with values uses t(key, params).
+
+const LANGS = [
+  { code: 'vi', label: 'Tiếng Việt', short: 'VI', locale: 'vi-VN' },
+  { code: 'en', label: 'English', short: 'EN', locale: 'en-US' },
+  { code: 'zh', label: '中文', short: '中', locale: 'zh-CN' },
+  { code: 'id', label: 'Bahasa Indonesia', short: 'ID', locale: 'id-ID' },
+];
+const IDX = { en: 0, zh: 1, id: 2 };
+
+const D = {
+  // ---- navigation & shell
+  'Vận hành': ['Operations', '运营', 'Operasional'],
+  'Tổng quan': ['Overview', '总览', 'Ringkasan'],
+  'Sáng kiến': ['Ideas', '改善提案', 'Ide'],
+  'Bảng Kaizen': ['Kaizen board', '改善看板', 'Papan Kaizen'],
+  'Phê duyệt': ['Approvals', '审批', 'Persetujuan'],
+  'Hiệu quả': ['Performance', '绩效', 'Kinerja'],
+  'Phân tích & ROI': ['Analytics & ROI', '分析与投资回报', 'Analitik & ROI'],
+  'Bảng vàng': ['Hall of fame', '光荣榜', 'Papan prestasi'],
+  'Tri thức': ['Knowledge', '知识', 'Pengetahuan'],
+  'Học viện Lean': ['Lean Academy', '精益学院', 'Akademi Lean'],
+  'Hệ thống': ['System', '系统', 'Sistem'],
+  'Quản trị': ['Admin', '管理', 'Admin'],
+  'Sáng kiến cải tiến': ['Improvement ideas', '改善提案', 'Ide perbaikan'],
+  'Đề xuất sáng kiến': ['Submit an idea', '提交提案', 'Ajukan ide'],
+  'Chi tiết sáng kiến': ['Idea details', '提案详情', 'Detail ide'],
+  'Cải tiến liên tục': ['Continuous improvement', '持续改善', 'Perbaikan berkelanjutan'],
+  'Đề xuất cải tiến': ['Propose improvement', '提出改善', 'Usulkan perbaikan'],
+  'Duyệt': ['Approve', '审批', 'Setujui'],
+  'Duyệt ({n})': ['Approve ({n})', '审批 ({n})', 'Setujui ({n})'],
+  'Thêm': ['More', '更多', 'Lainnya'],
+  'Trực tuyến': ['Online', '在线', 'Daring'],
+  'Ngoại tuyến': ['Offline', '离线', 'Luring'],
+  'Đăng xuất': ['Sign out', '退出', 'Keluar'],
+  'Điều hướng chính': ['Main navigation', '主导航', 'Navigasi utama'],
+  'Điều hướng nhanh': ['Quick navigation', '快捷导航', 'Navigasi cepat'],
+  'Mở menu': ['Open menu', '打开菜单', 'Buka menu'],
+  'Ngôn ngữ': ['Language', '语言', 'Bahasa'],
+  'Đã đồng bộ {n} sáng kiến': ['Synced {n} ideas', '已同步 {n} 条提案', '{n} ide tersinkron'],
+  'Không tải được trang': ['Could not load this page', '页面加载失败', 'Halaman gagal dimuat'],
+  'Về Tổng quan': ['Back to overview', '返回总览', 'Kembali ke ringkasan'],
+  'vừa xong': ['just now', '刚刚', 'baru saja'],
+  '{n} phút trước': ['{n} min ago', '{n} 分钟前', '{n} menit lalu'],
+  '{n} giờ trước': ['{n} h ago', '{n} 小时前', '{n} jam lalu'],
+  '{n} ngày trước': ['{n} days ago', '{n} 天前', '{n} hari lalu'],
+
+  // ---- roles
+  'Công nhân': ['Worker', '工人', 'Pekerja'],
+  'Tổ trưởng': ['Line leader', '组长', 'Ketua lini'],
+  'Ban Kaizen / IE': ['Kaizen team / IE', '改善小组 / IE', 'Tim Kaizen / IE'],
+  'Kế toán': ['Finance', '财务', 'Keuangan'],
+  'Ban Giám đốc': ['Management', '管理层', 'Manajemen'],
+  'Giám đốc': ['Director', '厂长', 'Direktur'],
+  'Ban Kaizen': ['Kaizen team', '改善小组', 'Tim Kaizen'],
+
+  // ---- login
+  'Gửi ý tưởng, chụp ảnh hiện trường': ['Submit ideas, photograph the floor', '提交想法，拍摄现场', 'Kirim ide, foto lapangan'],
+  'Sơ duyệt, xử lý Quick Win': ['First review, run Quick Wins', '初审，处理快速改善', 'Tinjauan awal, Quick Win'],
+  'Thẩm định kỹ thuật, Kanban': ['Technical review, Kanban', '技术评审，看板', 'Tinjauan teknis, Kanban'],
+  'Xác thực chi phí và ROI': ['Verify cost and ROI', '核实成本与回报', 'Verifikasi biaya dan ROI'],
+  'Theo dõi toàn nhà máy': ['Monitor the whole plant', '掌控全厂', 'Pantau seluruh pabrik'],
+  'Người dùng, xưởng, chuyền': ['Users, workshops, lines', '用户、车间、产线', 'Pengguna, bengkel, lini'],
+  'Mỗi ý tưởng nhỏ tại chuyền là': ['Every small idea on the line is', '产线上的每个小想法，都是', 'Setiap ide kecil di lini adalah'],
+  'một bước tiến lớn': ['a big step forward', '一次大的飞跃', 'langkah besar'],
+  'của nhà máy.': ['for the plant.', '工厂的进步。', 'bagi pabrik.'],
+  'Gửi đề xuất trong 60 giây.': ['Submit in 60 seconds.', '60 秒提交提案。', 'Kirim dalam 60 detik.'],
+  'Quét QR tại chuyền, chụp ảnh, chọn loại lãng phí. Mất mạng vẫn gửi được.': ['Scan the line QR, take a photo, pick the waste type. Works even offline.', '扫描产线二维码，拍照，选择浪费类型。断网也能提交。', 'Pindai QR lini, ambil foto, pilih jenis pemborosan. Tetap bisa tanpa internet.'],
+  'Duyệt dưới 48 giờ.': ['Approved within 48 hours.', '48 小时内审批。', 'Disetujui dalam 48 jam.'],
+  'Tổ trưởng, Ban Kaizen, Kế toán duyệt theo luồng rõ ràng, có theo dõi SLA.': ['Leaders, the Kaizen team and Finance review in a clear flow with SLA tracking.', '组长、改善小组、财务按清晰流程审批，并跟踪时限。', 'Ketua lini, tim Kaizen, dan Keuangan meninjau dalam alur jelas dengan pemantauan SLA.'],
+  'ROI được kiểm chứng.': ['Verified ROI.', '经核实的回报。', 'ROI terverifikasi.'],
+  'Kế toán xác thực tiết kiệm, hệ thống tự cộng điểm và thưởng.': ['Finance verifies savings; points and bonuses are granted automatically.', '财务核实节约金额，系统自动发放积分与奖金。', 'Keuangan memverifikasi penghematan; poin dan bonus diberikan otomatis.'],
+  'Thăng đai Kaizen.': ['Earn Kaizen belts.', '晋升改善腰带。', 'Raih sabuk Kaizen.'],
+  'Từ Đai Trắng đến Đai Đen Bậc Thầy theo đóng góp thực tế.': ['From White Belt to Master Black Belt, based on real contribution.', '根据实际贡献，从白带晋升至黑带大师。', 'Dari Sabuk Putih hingga Master Sabuk Hitam sesuai kontribusi nyata.'],
+  'Nhỏ hôm nay · Mạnh ngày mai': ['Small today · Strong tomorrow', '今日小改善 · 明日大不同', 'Kecil hari ini · Kuat esok hari'],
+  'Đăng nhập': ['Sign in', '登录', 'Masuk'],
+  'Dùng mã nhân viên do quản trị cấp.': ['Use the employee ID issued by your admin.', '请使用管理员分配的工号。', 'Gunakan ID karyawan dari admin.'],
+  'Mã nhân viên': ['Employee ID', '工号', 'ID karyawan'],
+  'Mật khẩu': ['Password', '密码', 'Kata sandi'],
+  'VD: CN001': ['e.g. CN001', '例如：CN001', 'mis. CN001'],
+  'Bản demo · chọn vai trò để vào nhanh': ['Demo · pick a role to sign in', '演示版 · 选择角色快速进入', 'Demo · pilih peran untuk masuk'],
+  'Dữ liệu demo chỉ lưu trong trình duyệt của bạn.': ['Demo data is stored only in your browser.', '演示数据仅保存在您的浏览器中。', 'Data demo hanya tersimpan di peramban Anda.'],
+  'Khôi phục dữ liệu mẫu': ['Reset sample data', '恢复示例数据', 'Pulihkan data contoh'],
+  'Đã khôi phục dữ liệu mẫu': ['Sample data reset', '已恢复示例数据', 'Data contoh dipulihkan'],
+  'Sai mã nhân viên. Chọn một tài khoản demo bên dưới.': ['Unknown employee ID. Pick a demo account below.', '工号错误。请选择下方的演示账号。', 'ID karyawan salah. Pilih akun demo di bawah.'],
+  'sai mã nhân viên hoặc mật khẩu': ['wrong employee ID or password', '工号或密码错误', 'ID karyawan atau kata sandi salah'],
+
+  // ---- home
+  'Chào buổi sáng': ['Good morning', '早上好', 'Selamat pagi'],
+  'Chào buổi trưa': ['Good afternoon', '中午好', 'Selamat siang'],
+  'Chào buổi chiều': ['Good afternoon', '下午好', 'Selamat sore'],
+  'Chào buổi tối': ['Good evening', '晚上好', 'Selamat malam'],
+  'Nguyên tắc Kaizen hôm nay': ["Today's Kaizen principle", '今日改善原则', 'Prinsip Kaizen hari ini'],
+  'Cấp đai Kaizen của bạn': ['Your Kaizen belt', '您的改善腰带', 'Sabuk Kaizen Anda'],
+  '{n} điểm cải tiến': ['{n} improvement points', '{n} 改善积分', '{n} poin perbaikan'],
+  'Còn {n} điểm để lên {belt}. Mỗi Quick Win +10, mỗi dự án lớn +50.': ['{n} points to {belt}. Each Quick Win +10, each major project +50.', '再得 {n} 分晋升 {belt}。每个快速改善 +10，每个大项目 +50。', '{n} poin lagi menuju {belt}. Setiap Quick Win +10, proyek besar +50.'],
+  'Bạn đã đạt cấp đai cao nhất.': ['You have reached the highest belt.', '您已达到最高腰带。', 'Anda telah mencapai sabuk tertinggi.'],
+  'Xem Bảng vàng': ['View hall of fame', '查看光荣榜', 'Lihat papan prestasi'],
+  'Sáng kiến của bạn': ['Your ideas', '您的提案', 'Ide Anda'],
+  'Sáng kiến trong xưởng': ['Ideas in workshop', '车间提案', 'Ide di bengkel'],
+  'Sáng kiến toàn nhà máy': ['Plant-wide ideas', '全厂提案', 'Ide seluruh pabrik'],
+  '{n} người tham gia': ['{n} participants', '{n} 人参与', '{n} peserta'],
+  'Đã hoàn thành': ['Completed', '已完成', 'Selesai'],
+  'Tỷ lệ hoàn thành {n}%': ['Completion rate {n}%', '完成率 {n}%', 'Tingkat penyelesaian {n}%'],
+  'Tiết kiệm đã xác thực': ['Verified savings', '已核实节约', 'Penghematan terverifikasi'],
+  'Ước tính {v}/năm': ['Estimated {v}/yr', '预计 {v}/年', 'Estimasi {v}/thn'],
+  'Thời gian sơ duyệt TB': ['Avg. first-review time', '平均初审时间', 'Rata-rata waktu tinjauan awal'],
+  'giờ': ['h', '小时', 'jam'],
+  'Đạt mục tiêu dưới 48 giờ': ['Within 48-hour target', '达到 48 小时目标', 'Sesuai target 48 jam'],
+  'Vượt mục tiêu 48 giờ': ['Over 48-hour target', '超出 48 小时目标', 'Melebihi target 48 jam'],
+  'Săn lãng phí tại Gemba': ['Hunt waste at the Gemba', '现场寻找浪费', 'Buru pemborosan di Gemba'],
+  'Thấy lãng phí nào? Chạm để đề xuất ngay': ['Spotted waste? Tap to propose a fix', '发现浪费？点击立即提案', 'Melihat pemborosan? Ketuk untuk mengusulkan'],
+  'Việc cần làm': ['To do', '待办事项', 'Tugas'],
+  'Đang chờ có mạng để đồng bộ': ['Waiting for network to sync', '等待网络同步', 'Menunggu jaringan untuk sinkron'],
+  'Chờ bạn duyệt cấp {lvl} · {h} giờ': ['Awaiting your {lvl} review · {h} h', '待您 {lvl} 审批 · {h} 小时', 'Menunggu tinjauan {lvl} Anda · {h} jam'],
+  'Người duyệt yêu cầu chỉnh sửa': ['Reviewer requested changes', '审批人要求修改', 'Peninjau meminta revisi'],
+  'Bản nháp chưa gửi duyệt': ['Draft not yet submitted', '草稿尚未提交', 'Draf belum diajukan'],
+  'Thực hiện và tải ảnh After': ['Implement and upload an After photo', '实施并上传改善后照片', 'Laksanakan dan unggah foto After'],
+  'Cập nhật tiến độ Kanban': ['Update Kanban progress', '更新看板进度', 'Perbarui progres Kanban'],
+  'Không còn việc tồn': ['All caught up', '没有待办事项', 'Semua tugas selesai'],
+  'Bạn đã xử lý xong mọi việc. Hãy đi một vòng Gemba để tìm cơ hội cải tiến mới.': ['You have handled everything. Walk the Gemba to find new opportunities.', '所有事项已处理完毕。去现场走一圈，发现新的改善机会吧。', 'Semua sudah ditangani. Kelilingi Gemba untuk menemukan peluang baru.'],
+  'Sáng kiến của tôi:': ['My ideas:', '我的提案：', 'Ide saya:'],
+  '· hoàn thành': ['· completed', '· 已完成', '· selesai'],
+  '· ước tính tiết kiệm': ['· estimated savings', '· 预计节约', '· estimasi penghematan'],
+  'Xem tất cả': ['View all', '查看全部', 'Lihat semua'],
+  'Hoạt động gần đây': ['Recent activity', '最近动态', 'Aktivitas terbaru'],
+  'Chưa có hoạt động': ['No activity yet', '暂无动态', 'Belum ada aktivitas'],
+  'Các sự kiện gửi, duyệt, bình luận sẽ hiển thị ở đây.': ['Submissions, approvals and comments will appear here.', '提交、审批和评论将显示在这里。', 'Pengajuan, persetujuan, dan komentar akan muncul di sini.'],
+  'đã gửi sáng kiến': ['submitted', '提交了提案', 'mengajukan'],
+  'đã hoàn thành sáng kiến': ['completed', '完成了提案', 'menyelesaikan'],
+  'đã bình luận về': ['commented on', '评论了', 'mengomentari'],
+  '{who} đã duyệt': ['{who} approved', '{who} 已批准', '{who} menyetujui'],
+  '{who} đã từ chối': ['{who} rejected', '{who} 已拒绝', '{who} menolak'],
+  '{who} yêu cầu sửa': ['{who} requested changes', '{who} 要求修改', '{who} meminta revisi'],
+
+  // ---- ideas list
+  'Tất cả': ['All', '全部', 'Semua'],
+  'Chờ duyệt': ['Pending', '待审批', 'Menunggu'],
+  'Đang thực hiện': ['In progress', '进行中', 'Berjalan'],
+  'Hoàn thành': ['Completed', '已完成', 'Selesai'],
+  'Từ chối': ['Rejected', '已拒绝', 'Ditolak'],
+  'Nháp': ['Draft', '草稿', 'Draf'],
+  'Mọi ý tưởng trong phạm vi bạn được xem, từ lúc gửi đến khi được khen thưởng.': ['Every idea you can see, from submission to reward.', '您可查看的所有提案，从提交到奖励。', 'Semua ide yang dapat Anda lihat, dari pengajuan hingga penghargaan.'],
+  'Xuất Excel': ['Export to Excel', '导出 Excel', 'Ekspor Excel'],
+  'Đề xuất mới': ['New idea', '新提案', 'Ide baru'],
+  'Tìm theo tiêu đề hoặc mã KZ…': ['Search by title or KZ code…', '按标题或 KZ 编号搜索…', 'Cari judul atau kode KZ…'],
+  'Tìm kiếm': ['Search', '搜索', 'Cari'],
+  'Loại lãng phí': ['Waste type', '浪费类型', 'Jenis pemborosan'],
+  'Mọi loại lãng phí': ['All waste types', '所有浪费类型', 'Semua jenis pemborosan'],
+  'Loại cải tiến': ['Improvement type', '改善类型', 'Jenis perbaikan'],
+  'Quick Win và Dự án': ['Quick Wins and projects', '快速改善与项目', 'Quick Win dan proyek'],
+  'Dự án lớn': ['Major project', '大项目', 'Proyek besar'],
+  'Của tôi': ['Mine', '我的', 'Milik saya'],
+  '{n} sáng kiến': ['{n} ideas', '{n} 条提案', '{n} ide'],
+  '{n} sáng kiến đang chờ đồng bộ': ['{n} ideas waiting to sync', '{n} 条提案等待同步', '{n} ide menunggu sinkron'],
+  'Không có sáng kiến phù hợp': ['No matching ideas', '没有符合条件的提案', 'Tidak ada ide yang cocok'],
+  'Thử bỏ bớt bộ lọc, hoặc gửi đề xuất đầu tiên cho nhóm này.': ['Try removing filters, or submit the first idea for this group.', '尝试减少筛选条件，或为此类提交第一条提案。', 'Coba kurangi filter, atau ajukan ide pertama untuk grup ini.'],
+
+  // ---- board
+  'Chờ sơ duyệt': ['Awaiting first review', '待初审', 'Menunggu tinjauan awal'],
+  'Quick Win tại chuyền': ['Quick Win on the line', '产线快速改善', 'Quick Win di lini'],
+  'Chờ Ban Kaizen': ['Awaiting Kaizen team', '待改善小组', 'Menunggu tim Kaizen'],
+  'Đang triển khai': ['Implementing', '实施中', 'Diterapkan'],
+  'Thẩm định ROI': ['ROI review', 'ROI 审核', 'Tinjauan ROI'],
+  'Dòng chảy của mọi sáng kiến qua từng chặng phê duyệt. Cột dồn nhiều thẻ là nơi đang tắc nghẽn.': ['The flow of every idea through each approval stage. Crowded columns show bottlenecks.', '所有提案在各审批阶段的流动。卡片堆积的列就是瓶颈所在。', 'Alur setiap ide melalui tahap persetujuan. Kolom yang menumpuk menunjukkan hambatan.'],
+  'Trống': ['Empty', '空', 'Kosong'],
+
+  // ---- approvals
+  'Sơ duyệt cấp Tổ': ['Line-level review', '组长初审', 'Tinjauan tingkat lini'],
+  'Thẩm định Ban Kaizen': ['Kaizen team review', '改善小组评审', 'Tinjauan tim Kaizen'],
+  'Thẩm định tài chính': ['Financial review', '财务审核', 'Tinjauan keuangan'],
+  'Mục tiêu: phản hồi mọi sáng kiến trong vòng 48 giờ. Lý do là bắt buộc khi từ chối hoặc yêu cầu sửa.': ['Goal: respond to every idea within 48 hours. A reason is required to reject or request changes.', '目标：48 小时内回复所有提案。拒绝或要求修改时必须填写理由。', 'Target: tanggapi setiap ide dalam 48 jam. Alasan wajib saat menolak atau meminta revisi.'],
+  '{n} đang chờ': ['{n} pending', '{n} 待处理', '{n} menunggu'],
+  '{h} giờ': ['{h} h', '{h} 小时', '{h} jam'],
+  '{h} giờ · quá hạn': ['{h} h · overdue', '{h} 小时 · 已超时', '{h} jam · terlambat'],
+  'Ảnh hiện trường': ['Floor photo', '现场照片', 'Foto lapangan'],
+  '· ước tính': ['· est.', '· 预计', '· est.'],
+  '/năm': ['/yr', '/年', '/thn'],
+  'Hiện trạng': ['Current state', '现状', 'Kondisi saat ini'],
+  'Đề xuất': ['Proposal', '提案', 'Usulan'],
+  'Ý kiến phản hồi cho người đề xuất (bắt buộc khi từ chối / yêu cầu sửa)': ['Feedback to the submitter (required to reject / request changes)', '给提案人的反馈（拒绝/要求修改时必填）', 'Umpan balik untuk pengusul (wajib saat menolak / meminta revisi)'],
+  'Ý kiến phản hồi': ['Feedback', '反馈意见', 'Umpan balik'],
+  'Chi phí đầu tư thực tế (₫)': ['Actual investment (₫)', '实际投资 (₫)', 'Investasi aktual (₫)'],
+  'Tiết kiệm / năm đã xác thực (₫)': ['Verified savings / year (₫)', '核实年节约 (₫)', 'Penghematan terverifikasi / tahun (₫)'],
+  'Duyệt · Quick Win': ['Approve · Quick Win', '批准 · 快速改善', 'Setujui · Quick Win'],
+  'Duyệt · Dự án lớn → IE': ['Approve · Major project → IE', '批准 · 大项目 → IE', 'Setujui · Proyek besar → IE'],
+  'Xác thực & hoàn thành': ['Verify & complete', '核实并完成', 'Verifikasi & selesaikan'],
+  'Phê duyệt triển khai': ['Approve implementation', '批准实施', 'Setujui penerapan'],
+  'Yêu cầu sửa': ['Request changes', '要求修改', 'Minta revisi'],
+  'Không có sáng kiến nào chờ bạn': ['Nothing waiting for you', '没有待您审批的提案', 'Tidak ada yang menunggu Anda'],
+  'Mọi đề xuất đã được phản hồi đúng hạn. Làm tốt lắm!': ['Every proposal has been answered on time. Well done!', '所有提案均已按时回复。干得好！', 'Semua usulan sudah ditanggapi tepat waktu. Kerja bagus!'],
+  'Đã chuyển sang: {s}': ['Moved to: {s}', '已转为：{s}', 'Dipindahkan ke: {s}'],
+
+  // ---- statuses
+  'Chờ thẩm định ROI': ['Awaiting ROI review', '待 ROI 审核', 'Menunggu tinjauan ROI'],
+  'Cần chỉnh sửa': ['Needs changes', '需要修改', 'Perlu revisi'],
+  'Quick Win · đang làm': ['Quick Win · in progress', '快速改善 · 进行中', 'Quick Win · berjalan'],
+  'Chờ đồng bộ': ['Waiting to sync', '等待同步', 'Menunggu sinkron'],
+
+  // ---- detail
+  'Gửi đề xuất': ['Submitted', '提交', 'Diajukan'],
+  'Sơ duyệt': ['First review', '初审', 'Tinjauan awal'],
+  'Triển khai': ['Implementation', '实施', 'Penerapan'],
+  'Làm tại chuyền': ['Done on the line', '产线实施', 'Dikerjakan di lini'],
+  'Bị từ chối': ['Rejected', '被拒绝', 'Ditolak'],
+  'Danh sách sáng kiến': ['All ideas', '提案列表', 'Daftar ide'],
+  '{n} ủng hộ': ['{n} support', '{n} 支持', '{n} dukungan'],
+  'Trước cải tiến · Hiện trạng': ['Before · Current state', '改善前 · 现状', 'Sebelum · Kondisi saat ini'],
+  'Sau cải tiến · Giải pháp': ['After · Solution', '改善后 · 方案', 'Sesudah · Solusi'],
+  'Chưa có ảnh hiện trạng': ['No before photo yet', '暂无改善前照片', 'Belum ada foto sebelum'],
+  'Chưa có ảnh sau cải tiến': ['No after photo yet', '暂无改善后照片', 'Belum ada foto sesudah'],
+  'Tải ảnh After': ['Upload After photo', '上传改善后照片', 'Unggah foto After'],
+  'Lợi ích mong đợi': ['Expected benefit', '预期效益', 'Manfaat yang diharapkan'],
+  'Lãng phí được loại bỏ': ['Waste eliminated', '消除的浪费', 'Pemborosan yang dihilangkan'],
+  'Kanban triển khai': ['Implementation Kanban', '实施看板', 'Kanban penerapan'],
+  '{a}/{b} hoàn thành': ['{a}/{b} done', '{a}/{b} 已完成', '{a}/{b} selesai'],
+  'Cần làm': ['To do', '待办', 'Akan dikerjakan'],
+  'Đang làm': ['Doing', '进行中', 'Dikerjakan'],
+  'Chưa giao': ['Unassigned', '未分配', 'Belum ditugaskan'],
+  'hạn {d}': ['due {d}', '截止 {d}', 'tenggat {d}'],
+  'Lùi': ['Back', '后退', 'Mundur'],
+  'Tiến': ['Forward', '前进', 'Maju'],
+  'Thêm công việc triển khai…': ['Add an implementation task…', '添加实施任务…', 'Tambah tugas penerapan…'],
+  'Tên công việc': ['Task name', '任务名称', 'Nama tugas'],
+  'Hạn': ['Due date', '截止日期', 'Tenggat'],
+  'Thảo luận': ['Discussion', '讨论', 'Diskusi'],
+  '{n} bình luận': ['{n} comments', '{n} 条评论', '{n} komentar'],
+  'Chưa có bình luận. Hãy góp ý để ý tưởng tốt hơn.': ['No comments yet. Share feedback to make the idea better.', '暂无评论。提出建议，让想法更完善。', 'Belum ada komentar. Beri masukan agar ide lebih baik.'],
+  'Góp ý, đặt câu hỏi, chia sẻ kinh nghiệm…': ['Give feedback, ask, share experience…', '提出建议、提问、分享经验…', 'Beri masukan, bertanya, berbagi pengalaman…'],
+  'Bình luận': ['Comment', '评论', 'Komentar'],
+  'Gửi': ['Send', '发送', 'Kirim'],
+  'Việc tiếp theo': ['Next step', '下一步', 'Langkah berikutnya'],
+  'Gửi duyệt': ['Submit for approval', '提交审批', 'Ajukan persetujuan'],
+  'Cần ít nhất một ảnh After.': ['At least one After photo is required.', '至少需要一张改善后照片。', 'Minimal satu foto After diperlukan.'],
+  'Mọi công việc phải xong và có ảnh After.': ['All tasks must be done and an After photo uploaded.', '所有任务须完成并上传改善后照片。', 'Semua tugas harus selesai dan ada foto After.'],
+  'Hoàn thành Quick Win': ['Complete Quick Win', '完成快速改善', 'Selesaikan Quick Win'],
+  'Hoàn thành, chuyển Kế toán': ['Complete, send to Finance', '完成并转财务', 'Selesai, kirim ke Keuangan'],
+  'Thông tin': ['Details', '信息', 'Informasi'],
+  'Người đề xuất': ['Submitter', '提案人', 'Pengusul'],
+  'Người phụ trách': ['Owner', '负责人', 'Penanggung jawab'],
+  'Ngày gửi': ['Submitted on', '提交日期', 'Tanggal diajukan'],
+  'Ước tính tiết kiệm': ['Estimated savings', '预计节约', 'Estimasi penghematan'],
+  '{v}/năm': ['{v}/yr', '{v}/年', '{v}/thn'],
+  'Hiệu quả tài chính': ['Financial impact', '财务效益', 'Dampak keuangan'],
+  'Đã xác thực': ['Verified', '已核实', 'Terverifikasi'],
+  'Dự toán': ['Estimate', '预算', 'Estimasi'],
+  'ROI năm đầu': ['First-year ROI', '首年 ROI', 'ROI tahun pertama'],
+  'Chi phí đầu tư': ['Investment', '投资成本', 'Investasi'],
+  'Tiết kiệm / năm': ['Savings / year', '年节约', 'Penghematan / tahun'],
+  'Tiết kiệm mỗi năm': ['Savings per year', '每年节约', 'Penghematan per tahun'],
+  'Hoàn vốn': ['Payback', '回收期', 'Balik modal'],
+  '{n} tháng': ['{n} months', '{n} 个月', '{n} bulan'],
+  'Xác thực': ['Verified on', '核实日期', 'Diverifikasi'],
+  'Chưa nhập số liệu.': ['No figures entered yet.', '尚未录入数据。', 'Belum ada angka.'],
+  'Chi phí đầu tư (₫)': ['Investment (₫)', '投资成本 (₫)', 'Investasi (₫)'],
+  'Tiết kiệm / năm (₫)': ['Savings / year (₫)', '年节约 (₫)', 'Penghematan / tahun (₫)'],
+  'Lưu dự toán': ['Save estimate', '保存预算', 'Simpan estimasi'],
+  'Khen thưởng': ['Rewards', '奖励', 'Penghargaan'],
+  '+{p} điểm': ['+{p} points', '+{p} 积分', '+{p} poin'],
+  '+{p} điểm · thưởng {v}': ['+{p} points · bonus {v}', '+{p} 积分 · 奖金 {v}', '+{p} poin · bonus {v}'],
+  'Lịch sử phê duyệt': ['Approval history', '审批记录', 'Riwayat persetujuan'],
+  'đang chờ': ['pending', '待处理', 'menunggu'],
+  'đã duyệt': ['approved', '已批准', 'disetujui'],
+  'từ chối': ['rejected', '已拒绝', 'ditolak'],
+  'yêu cầu sửa': ['changes requested', '要求修改', 'minta revisi'],
+  'Chưa gửi duyệt': ['Not submitted yet', '尚未提交', 'Belum diajukan'],
+  'Đã gửi duyệt': ['Submitted for approval', '已提交审批', 'Diajukan untuk persetujuan'],
+  'Đã cập nhật trạng thái': ['Status updated', '状态已更新', 'Status diperbarui'],
+  'Đã tải ảnh After': ['After photo uploaded', '已上传改善后照片', 'Foto After diunggah'],
+  'Đã thêm công việc': ['Task added', '已添加任务', 'Tugas ditambahkan'],
+  'Đã lưu dự toán': ['Estimate saved', '预算已保存', 'Estimasi disimpan'],
+
+  // ---- wizard
+  'Vấn đề tại Gemba': ['Problem at the Gemba', '现场问题', 'Masalah di Gemba'],
+  'Giải pháp cải tiến': ['Improvement', '改善方案', 'Solusi perbaikan'],
+  'Hình ảnh & gửi': ['Photos & submit', '照片与提交', 'Foto & kirim'],
+  'Mô tả điều bạn thấy, điều bạn muốn thay đổi, và chụp ảnh hiện trường.': ['Describe what you see, what you want to change, and take photos of the floor.', '描述您看到的问题、希望改变的内容，并拍摄现场照片。', 'Jelaskan apa yang Anda lihat, apa yang ingin diubah, dan ambil foto lapangan.'],
+  '(quét QR)': ['(scanned QR)', '（扫码）', '(pindai QR)'],
+  'Tiêu đề ngắn gọn *': ['Short title *', '简短标题 *', 'Judul singkat *'],
+  'VD: Gắn nam châm giữ kéo tại bàn may': ['e.g. Magnetic scissor holder at sewing tables', '例如：在缝纫台安装磁铁固定剪刀', 'mis. Pemegang gunting magnet di meja jahit'],
+  'Lĩnh vực *': ['Category *', '类别 *', 'Kategori *'],
+  'Dây chuyền': ['Line', '产线', 'Lini'],
+  'Theo hồ sơ của tôi': ['From my profile', '按我的档案', 'Sesuai profil saya'],
+  'Hiện trạng / vấn đề bạn thấy *': ['Current state / problem you see *', '现状 / 您发现的问题 *', 'Kondisi / masalah yang Anda lihat *'],
+  'Chuyện gì đang xảy ra? Mất bao lâu, xảy ra bao nhiêu lần?': ['What is happening? How long does it take, how often?', '发生了什么？耗时多久，发生几次？', 'Apa yang terjadi? Berapa lama, seberapa sering?'],
+  'Loại lãng phí (chọn một hoặc nhiều)': ['Waste type (choose one or more)', '浪费类型（可多选）', 'Jenis pemborosan (pilih satu atau lebih)'],
+  'Giải pháp đề xuất *': ['Proposed solution *', '建议方案 *', 'Solusi yang diusulkan *'],
+  'Bạn muốn thay đổi điều gì? Làm như thế nào?': ['What do you want to change? How?', '您想改变什么？怎么做？', 'Apa yang ingin diubah? Bagaimana caranya?'],
+  'Giảm bao nhiêu phút, bao nhiêu lỗi, an toàn hơn ra sao…': ['Minutes saved, defects reduced, how much safer…', '节省多少分钟、减少多少缺陷、安全性如何提升…', 'Berapa menit dihemat, cacat berkurang, seberapa lebih aman…'],
+  'Công cụ Lean áp dụng': ['Lean tool applied', '应用的精益工具', 'Alat Lean yang diterapkan'],
+  'Ước tính tiết kiệm mỗi năm (₫)': ['Estimated savings per year (₫)', '预计年节约 (₫)', 'Estimasi penghematan per tahun (₫)'],
+  'Không chắc? Để trống, Ban Kaizen sẽ ước tính.': ['Not sure? Leave it blank, the Kaizen team will estimate.', '不确定？留空，改善小组会估算。', 'Tidak yakin? Kosongkan, tim Kaizen akan memperkirakan.'],
+  'Chụp hoặc chọn ảnh hiện trường (Before)': ['Take or choose floor photos (Before)', '拍摄或选择现场照片（改善前）', 'Ambil atau pilih foto lapangan (Before)'],
+  'Ảnh JPG/PNG/WEBP, video MP4. Kéo thả vào đây trên máy tính.': ['JPG/PNG/WEBP photos, MP4 video. Drag and drop here on a computer.', 'JPG/PNG/WEBP 照片，MP4 视频。电脑上可拖放到此处。', 'Foto JPG/PNG/WEBP, video MP4. Seret dan lepas di sini pada komputer.'],
+  'Xóa ảnh': ['Remove photo', '删除照片', 'Hapus foto'],
+  'Kiểm tra lại trước khi gửi': ['Review before submitting', '提交前检查', 'Periksa sebelum mengirim'],
+  'Tiêu đề': ['Title', '标题', 'Judul'],
+  'Lĩnh vực': ['Category', '类别', 'Kategori'],
+  'Giải pháp': ['Solution', '方案', 'Solusi'],
+  'Lãng phí': ['Waste', '浪费', 'Pemborosan'],
+  'Công cụ': ['Tool', '工具', 'Alat'],
+  'Ước tính': ['Estimate', '预计', 'Estimasi'],
+  'Quay lại': ['Back', '返回', 'Kembali'],
+  'Tiếp tục': ['Continue', '继续', 'Lanjut'],
+  'Lưu nháp': ['Save draft', '保存草稿', 'Simpan draf'],
+  'Cần nhập tiêu đề và hiện trạng': ['Enter a title and the current state', '请填写标题和现状', 'Isi judul dan kondisi saat ini'],
+  'Cần mô tả giải pháp đề xuất': ['Describe the proposed solution', '请描述建议方案', 'Jelaskan solusi yang diusulkan'],
+  'Đang ngoại tuyến. Đã lưu, sẽ tự gửi khi có mạng': ['Offline. Saved, will send automatically when online', '离线中。已保存，联网后自动发送', 'Luring. Tersimpan, akan dikirim otomatis saat daring'],
+  'Đã gửi {code}. Tổ trưởng sẽ phản hồi trong 48 giờ': ['Submitted {code}. Your line leader will reply within 48 hours', '已提交 {code}。组长将在 48 小时内回复', '{code} diajukan. Ketua lini akan menanggapi dalam 48 jam'],
+  'Đã lưu nháp {code}': ['Draft {code} saved', '草稿 {code} 已保存', 'Draf {code} disimpan'],
+  'Mất kết nối. Đã lưu ngoại tuyến': ['Connection lost. Saved offline', '连接中断。已离线保存', 'Koneksi terputus. Disimpan luring'],
+
+  // ---- analytics
+  'Hiệu quả chương trình Kaizen: số lượng, tốc độ, lãng phí được loại bỏ và giá trị tài chính đã xác thực.': ['Kaizen programme performance: volume, speed, waste eliminated and verified financial value.', '改善项目绩效：数量、速度、消除的浪费及经核实的财务价值。', 'Kinerja program Kaizen: jumlah, kecepatan, pemborosan yang dihilangkan, dan nilai keuangan terverifikasi.'],
+  '30 ngày': ['30 days', '30 天', '30 hari'],
+  'Quý': ['Quarter', '季度', 'Kuartal'],
+  '12 tháng': ['12 months', '12 个月', '12 bulan'],
+  'Sáng kiến đã gửi': ['Ideas submitted', '已提交提案', 'Ide diajukan'],
+  '{q} Quick Win · {m} dự án': ['{q} Quick Wins · {m} projects', '{q} 个快速改善 · {m} 个项目', '{q} Quick Win · {m} proyek'],
+  'Đầu tư {v}': ['Invested {v}', '投资 {v}', 'Investasi {v}'],
+  'Lợi ích ròng năm đầu': ['First-year net benefit', '首年净收益', 'Manfaat bersih tahun pertama'],
+  'Chưa có dự án xác thực': ['No verified projects yet', '暂无已核实项目', 'Belum ada proyek terverifikasi'],
+  'Đề xuất và hoàn thành theo tháng': ['Submitted and completed by month', '每月提交与完成', 'Diajukan dan selesai per bulan'],
+  'Đã gửi': ['Submitted', '已提交', 'Diajukan'],
+  'Xem dạng bảng': ['Show as table', '以表格查看', 'Lihat sebagai tabel'],
+  'Tháng': ['Month', '月份', 'Bulan'],
+  'Tháng {m}/{y}': ['{m}/{y}', '{y}年{m}月', 'Bulan {m}/{y}'],
+  'T{m}': ['M{m}', '{m}月', 'B{m}'],
+  'Tỷ lệ hoàn thành': ['Completion rate', '完成率', 'Tingkat penyelesaian'],
+  'Tỷ lệ sáng kiến được duyệt đã hoàn thành.': ['Share of approved ideas that are completed.', '已批准提案的完成比例。', 'Persentase ide yang disetujui dan selesai.'],
+  'Thời gian sơ duyệt trung bình': ['Average first-review time', '平均初审时间', 'Rata-rata waktu tinjauan awal'],
+  '(mục tiêu 48 giờ).': ['(target 48 h).', '（目标 48 小时）。', '(target 48 jam).'],
+  'Lãng phí được tấn công': ['Waste being tackled', '正在消除的浪费', 'Pemborosan yang ditangani'],
+  'Số sáng kiến': ['Number of ideas', '提案数量', 'Jumlah ide'],
+  'Chưa có dữ liệu': ['No data yet', '暂无数据', 'Belum ada data'],
+  'Hãy gắn loại lãng phí khi gửi đề xuất.': ['Tag the waste type when submitting ideas.', '提交提案时请标注浪费类型。', 'Tandai jenis pemborosan saat mengajukan ide.'],
+  'Phễu chuyển đổi': ['Conversion funnel', '转化漏斗', 'Corong konversi'],
+  'Từ ý tưởng đến kết quả': ['From idea to result', '从想法到成果', 'Dari ide ke hasil'],
+  'Qua sơ duyệt': ['Passed first review', '通过初审', 'Lolos tinjauan awal'],
+  'Đã triển khai': ['Implemented', '已实施', 'Diterapkan'],
+  'Theo lĩnh vực': ['By category', '按类别', 'Per kategori'],
+  'ROI theo xưởng và tháng': ['ROI by workshop and month', '按车间和月份的 ROI', 'ROI per bengkel dan bulan'],
+  'Chỉ gồm dự án đã được Kế toán xác thực': ['Only projects verified by Finance', '仅包含财务核实的项目', 'Hanya proyek terverifikasi Keuangan'],
+  'Xưởng': ['Workshop', '车间', 'Bengkel'],
+  'Dự án': ['Projects', '项目', 'Proyek'],
+  'Đầu tư': ['Investment', '投资', 'Investasi'],
+
+  // ---- leaderboard
+  'Bảng vàng Kaizen': ['Kaizen hall of fame', '改善光荣榜', 'Papan prestasi Kaizen'],
+  'Vinh danh những người tạo ra cải tiến thực sự. Điểm chỉ được cộng khi sáng kiến hoàn thành và được xác nhận.': ['Celebrating the people who make real improvements. Points count only when ideas are completed and confirmed.', '表彰真正带来改善的人。只有提案完成并确认后才计分。', 'Menghargai orang yang membuat perbaikan nyata. Poin dihitung hanya saat ide selesai dan dikonfirmasi.'],
+  'HẠNG {n}': ['RANK {n}', '第 {n} 名', 'PERINGKAT {n}'],
+  'điểm': ['points', '积分', 'poin'],
+  '{belt} · {c}/{n} hoàn thành': ['{belt} · {c}/{n} completed', '{belt} · 完成 {c}/{n}', '{belt} · {c}/{n} selesai'],
+  'Xếp hạng': ['Ranking', '排名', 'Peringkat'],
+  'Nhân viên': ['Employee', '员工', 'Karyawan'],
+  'Cấp đai': ['Belt', '腰带', 'Sabuk'],
+  'Thưởng': ['Bonus', '奖金', 'Bonus'],
+  'Điểm': ['Points', '积分', 'Poin'],
+  'Lộ trình phát triển': ['Growth path', '成长路径', 'Jalur pengembangan'],
+  '5 cấp đai Kaizen': ['5 Kaizen belts', '5 级改善腰带', '5 tingkat sabuk Kaizen'],
+  'Mô phỏng hệ thống đai Lean Six Sigma: điểm cải tiến tích lũy quyết định cấp đai của bạn.': ['Modelled on Lean Six Sigma belts: your accumulated improvement points set your belt.', '参照精益六西格玛腰带体系：累计改善积分决定您的腰带等级。', 'Mengikuti sabuk Lean Six Sigma: akumulasi poin perbaikan menentukan sabuk Anda.'],
+  'Bạn ở đây': ['You are here', '您在这里', 'Anda di sini'],
+  'Cấp {n} · từ {p} điểm': ['Level {n} · from {p} points', '第 {n} 级 · {p} 分起', 'Tingkat {n} · mulai {p} poin'],
+
+  // ---- academy
+  'Kiến thức nền tảng để nhìn ra lãng phí và đề xuất cải tiến tốt hơn. Mỗi mục đều dẫn thẳng đến form đề xuất.': ['The fundamentals for spotting waste and proposing better improvements. Every item links straight to the proposal form.', '识别浪费、提出更好改善的基础知识。每一项都可直接进入提案表单。', 'Dasar untuk mengenali pemborosan dan mengusulkan perbaikan lebih baik. Setiap bagian langsung menuju formulir usulan.'],
+  '10 nguyên tắc': ['10 principles', '10 项原则', '10 prinsip'],
+  '8 lãng phí': ['8 wastes', '8 大浪费', '8 pemborosan'],
+  'Công cụ Lean': ['Lean tools', '精益工具', 'Alat Lean'],
+  'Lộ trình đai': ['Belt path', '腰带路径', 'Jalur sabuk'],
+  'Tư duy': ['Mindset', '思维', 'Pola pikir'],
+  '10 nguyên tắc Kaizen xây dựng hệ thống tốt hơn': ['10 Kaizen principles that build better systems', '打造更好系统的 10 项改善原则', '10 prinsip Kaizen untuk sistem yang lebih baik'],
+  'Kaizen (改善) nghĩa là "thay đổi để tốt hơn". Đây là những nguyên tắc giúp cải tiến trở thành thói quen hằng ngày.': ['Kaizen (改善) means "change for the better". These principles turn improvement into a daily habit.', '改善（Kaizen）意为“变得更好”。这些原则让改善成为日常习惯。', 'Kaizen (改善) berarti "berubah menjadi lebih baik". Prinsip ini menjadikan perbaikan kebiasaan sehari-hari.'],
+  'Nhận diện': ['Recognise', '识别', 'Kenali'],
+  '8 lãng phí trong Lean (DOWNTIME)': ['The 8 wastes of Lean (DOWNTIME)', '精益 8 大浪费（DOWNTIME）', '8 pemborosan Lean (DOWNTIME)'],
+  'Mọi hoạt động không tạo giá trị cho khách hàng là lãng phí. Tập trung vào giá trị, loại bỏ phần không tạo giá trị.': ['Anything that adds no value for the customer is waste. Focus on value, remove the non-value-added.', '凡是不为客户创造价值的活动都是浪费。聚焦价值，消除非增值活动。', 'Semua yang tidak memberi nilai bagi pelanggan adalah pemborosan. Fokus pada nilai, hilangkan yang tidak bernilai tambah.'],
+  'Ví dụ:': ['Example:', '示例：', 'Contoh:'],
+  'Đề xuất loại bỏ': ['Propose a fix', '提出消除方案', 'Usulkan perbaikan'],
+  'Phương pháp': ['Methods', '方法', 'Metode'],
+  'Công cụ Lean tại nơi làm việc': ['Lean workplace tools', '精益现场工具', 'Alat Lean di tempat kerja'],
+  'Công cụ thông minh hơn, nơi làm việc tốt hơn, cải tiến liên tục.': ['Smarter tools, better workplace, continuous improvement.', '更聪明的工具，更好的现场，持续改善。', 'Alat lebih cerdas, tempat kerja lebih baik, perbaikan berkelanjutan.'],
+  'Phát triển': ['Growth', '成长', 'Pengembangan'],
+  'Hành trình đai Kaizen': ['The Kaizen belt journey', '改善腰带之旅', 'Perjalanan sabuk Kaizen'],
+  'Học nền tảng → Hỗ trợ quy trình → Thực hành & cải tiến → Dẫn dắt & kèm cặp → Chiến lược & chuyển đổi.': ['Learn the fundamentals → Support the process → Practise & improve → Lead & mentor → Strategise & transform.', '学习基础 → 支持流程 → 实践与改善 → 领导与辅导 → 战略与转型。', 'Pelajari dasar → Dukung proses → Praktik & perbaiki → Pimpin & bimbing → Strategi & transformasi.'],
+  'Bước {n}': ['Step {n}', '第 {n} 步', 'Langkah {n}'],
+  'Thay đổi nhỏ hôm nay. Hệ thống mạnh hơn ngày mai.': ['Small changes today. Stronger systems tomorrow.', '今天的小改变，明天更强的系统。', 'Perubahan kecil hari ini. Sistem lebih kuat esok hari.'],
+  'Tiếp tục cải tiến, tiếp tục phát triển.': ['Keep improving, keep growing.', '持续改善，不断成长。', 'Terus memperbaiki, terus berkembang.'],
+
+  // ---- admin
+  'Chỉ dành cho quản trị viên': ['Administrators only', '仅限管理员', 'Khusus administrator'],
+  'Bạn không có quyền truy cập trang này.': ['You do not have access to this page.', '您无权访问此页面。', 'Anda tidak memiliki akses ke halaman ini.'],
+  'Quản trị hệ thống': ['System administration', '系统管理', 'Administrasi sistem'],
+  'Người dùng, phân quyền và mã QR cho từng dây chuyền.': ['Users, roles and QR codes for each line.', '用户、权限及各产线二维码。', 'Pengguna, peran, dan kode QR untuk setiap lini.'],
+  'Người dùng': ['Users', '用户', 'Pengguna'],
+  '{n} tài khoản': ['{n} accounts', '{n} 个账号', '{n} akun'],
+  'Mã': ['Code', '编号', 'Kode'],
+  'Họ tên': ['Full name', '姓名', 'Nama lengkap'],
+  'Vai trò': ['Role', '角色', 'Peran'],
+  'Trạng thái': ['Status', '状态', 'Status'],
+  'Khóa': ['Locked', '已锁定', 'Dikunci'],
+  'Hoạt động': ['Active', '正常', 'Aktif'],
+  'Thêm người dùng': ['Add user', '添加用户', 'Tambah pengguna'],
+  'Mật khẩu ban đầu': ['Initial password', '初始密码', 'Kata sandi awal'],
+  'Tạo tài khoản': ['Create account', '创建账号', 'Buat akun'],
+  'Dây chuyền & mã QR': ['Lines & QR codes', '产线与二维码', 'Lini & kode QR'],
+  'In mã QR dán tại chuyền. Công nhân quét là mở form đề xuất đúng vị trí.': ['Print the QR and post it on the line. Workers scan it to open the form for that exact spot.', '打印二维码贴在产线上，工人扫码即可打开对应位置的提案表单。', 'Cetak QR dan tempel di lini. Pekerja memindai untuk membuka formulir di lokasi tersebut.'],
+  'Liên kết QR': ['QR link', '二维码链接', 'Tautan QR'],
+  'Sao chép': ['Copy', '复制', 'Salin'],
+  'Mã (VD: L03)': ['Code (e.g. L03)', '编号（如 L03）', 'Kode (mis. L03)'],
+  'Mã dây chuyền': ['Line code', '产线编号', 'Kode lini'],
+  'Tên dây chuyền': ['Line name', '产线名称', 'Nama lini'],
+  'Thêm chuyền': ['Add line', '添加产线', 'Tambah lini'],
+  'Đã tạo tài khoản {code}': ['Account {code} created', '已创建账号 {code}', 'Akun {code} dibuat'],
+  'Đã thêm dây chuyền': ['Line added', '已添加产线', 'Lini ditambahkan'],
+  'Đã sao chép liên kết': ['Link copied', '链接已复制', 'Tautan disalin'],
+  'Hãy nhấn Ctrl+C để sao chép': ['Press Ctrl+C to copy', '请按 Ctrl+C 复制', 'Tekan Ctrl+C untuk menyalin'],
+
+  // ---- categories (server data)
+  'An toàn': ['Safety', '安全', 'Keselamatan'],
+  'Chất lượng': ['Quality', '质量', 'Kualitas'],
+  'Chi phí': ['Cost', '成本', 'Biaya'],
+  'Giao hàng / Năng suất': ['Delivery / Productivity', '交付 / 效率', 'Pengiriman / Produktivitas'],
+  '5S / Môi trường làm việc': ['5S / Workplace', '5S / 工作环境', '5S / Lingkungan kerja'],
+  'Khác': ['Other', '其他', 'Lainnya'],
+
+  // ---- 8 wastes
+  'Khuyết tật': ['Defects', '缺陷', 'Cacat'],
+  'Lỗi phải sửa lại, hàng hỏng phải hủy bỏ.': ['Errors that need rework, or scrap.', '需要返工或报废的错误。', 'Kesalahan yang perlu dikerjakan ulang atau dibuang.'],
+  'Lệch đường may, sai kích thước, phải tháo ra làm lại.': ['Crooked seams, wrong sizes, unpicked and resewn.', '缝线歪斜、尺寸错误，需拆开重做。', 'Jahitan miring, ukuran salah, harus dibongkar dan dijahit ulang.'],
+  'Sản xuất thừa': ['Overproduction', '过量生产', 'Produksi berlebih'],
+  'Làm nhiều hơn hoặc sớm hơn nhu cầu.': ['Making more, or earlier, than needed.', '生产多于或早于需求。', 'Membuat lebih banyak atau lebih awal dari kebutuhan.'],
+  'Cắt bán thành phẩm dồn sẵn cho cả tuần.': ['Cutting a whole week of parts in advance.', '提前裁好整周的半成品。', 'Memotong komponen untuk seminggu di muka.'],
+  'Chờ đợi': ['Waiting', '等待', 'Menunggu'],
+  'Người hoặc máy đứng chờ vật tư, thông tin, phê duyệt.': ['People or machines idle, waiting for materials, information or approval.', '人或机器在等待物料、信息或审批。', 'Orang atau mesin menganggur menunggu bahan, informasi, atau persetujuan.'],
+  'Chuyền dừng 20 phút chờ cấp chỉ.': ['The line stops 20 minutes waiting for thread.', '产线停工 20 分钟等待供线。', 'Lini berhenti 20 menit menunggu benang.'],
+  'Lãng phí tài năng': ['Unused talent', '人才浪费', 'Bakat tak terpakai'],
+  'Không tận dụng kiến thức, sáng tạo của con người.': ["Not using people's knowledge and creativity.", '未发挥员工的知识与创造力。', 'Tidak memanfaatkan pengetahuan dan kreativitas orang.'],
+  'Thợ lành nghề chỉ làm việc đơn giản, không được góp ý.': ['Skilled workers do only simple tasks and are never asked for ideas.', '熟练工只做简单工作，无法提出建议。', 'Pekerja terampil hanya mengerjakan tugas sederhana, tidak dimintai pendapat.'],
+  'Vận chuyển': ['Transportation', '搬运', 'Transportasi'],
+  'Di chuyển vật tư, thông tin không cần thiết.': ['Unnecessary movement of materials or information.', '不必要的物料或信息移动。', 'Perpindahan bahan atau informasi yang tidak perlu.'],
+  'Kho phụ liệu cách chuyền 80 mét.': ['The trim store is 80 metres from the line.', '辅料仓库距产线 80 米。', 'Gudang aksesori berjarak 80 meter dari lini.'],
+  'Tồn kho': ['Inventory', '库存', 'Persediaan'],
+  'Nguyên liệu, bán thành phẩm, thành phẩm tồn dư.': ['Excess raw materials, work-in-process or finished goods.', '过多的原料、在制品或成品。', 'Kelebihan bahan baku, barang setengah jadi, atau barang jadi.'],
+  'Vải tồn 3 tháng chiếm chỗ và bị ẩm.': ['Fabric stored for 3 months takes space and gets damp.', '面料积压 3 个月，占用空间且受潮。', 'Kain tersimpan 3 bulan memakan tempat dan lembap.'],
+  'Thao tác thừa': ['Motion', '多余动作', 'Gerakan berlebih'],
+  'Cử động, đi lại không tạo giá trị.': ['Movement by people that adds no value.', '不创造价值的人员动作和走动。', 'Gerakan orang yang tidak menambah nilai.'],
+  'Cúi người nhặt dụng cụ, đi lại tìm kéo.': ['Bending to pick up tools, walking around to find scissors.', '弯腰捡工具，走来走去找剪刀。', 'Membungkuk mengambil alat, berjalan mencari gunting.'],
+  'Gia công thừa': ['Over-processing', '过度加工', 'Proses berlebih'],
+  'Làm kỹ hơn hoặc phức tạp hơn mức khách hàng cần.': ['Doing more work, or more complex work, than the customer needs.', '做得比客户需要的更多或更复杂。', 'Bekerja lebih banyak atau lebih rumit dari kebutuhan pelanggan.'],
+  'Kiểm tra 2 lần cùng một tiêu chí.': ['Checking the same criterion twice.', '同一标准检查两次。', 'Memeriksa kriteria yang sama dua kali.'],
+
+  // ---- tools
+  'Những thay đổi nhỏ, liên tục, do chính người làm việc đề xuất.': ['Small, continuous changes proposed by the people doing the work.', '由一线员工提出的、持续的小改变。', 'Perubahan kecil dan berkelanjutan yang diusulkan oleh pekerja sendiri.'],
+  'Thay đổi nhỏ, làm ngay': ['Small changes, done now', '小改变，立即做', 'Perubahan kecil, langsung dikerjakan'],
+  'Mọi người cùng tham gia': ['Everyone takes part', '全员参与', 'Semua orang ikut serta'],
+  'Đo trước và sau': ['Measure before and after', '前后对比测量', 'Ukur sebelum dan sesudah'],
+  'Tổ chức nơi làm việc': ['Workplace organisation', '现场整理', 'Penataan tempat kerja'],
+  'Sàng lọc, Sắp xếp, Sạch sẽ, Săn sóc, Sẵn sàng.': ['Sort, Set in order, Shine, Standardise, Sustain.', '整理、整顿、清扫、清洁、素养。', 'Ringkas, Rapi, Resik, Rawat, Rajin.'],
+  'Sàng lọc – Seiri': ['Sort – Seiri', '整理 – Seiri', 'Ringkas – Seiri'],
+  'Sắp xếp – Seiton': ['Set in order – Seiton', '整顿 – Seiton', 'Rapi – Seiton'],
+  'Sạch sẽ – Seiso': ['Shine – Seiso', '清扫 – Seiso', 'Resik – Seiso'],
+  'Săn sóc – Seiketsu': ['Standardise – Seiketsu', '清洁 – Seiketsu', 'Rawat – Seiketsu'],
+  'Sẵn sàng – Shitsuke': ['Sustain – Shitsuke', '素养 – Shitsuke', 'Rajin – Shitsuke'],
+  'Chống sai lỗi': ['Error proofing', '防错', 'Pencegahan kesalahan'],
+  'Thiết kế để lỗi không thể xảy ra hoặc bị phát hiện ngay.': ['Design so mistakes cannot happen, or are caught at once.', '设计成错误无法发生或能立即被发现。', 'Rancang agar kesalahan tidak bisa terjadi atau langsung terdeteksi.'],
+  'Ngăn lỗi từ gốc': ['Prevent mistakes at the source', '从源头防错', 'Cegah kesalahan dari sumbernya'],
+  'Cơ cấu an toàn': ['Fail-safe mechanisms', '失效保护机制', 'Mekanisme pengaman'],
+  'Làm đúng ngay lần đầu': ['Right the first time', '一次做对', 'Benar sejak pertama'],
+  'Quản lý trực quan dòng chảy': ['Visual flow management', '可视化流程管理', 'Manajemen alur visual'],
+  'Thẻ và bảng tín hiệu để kéo công việc theo nhu cầu.': ['Signal cards and boards that pull work based on demand.', '用信号卡和看板按需拉动工作。', 'Kartu dan papan sinyal untuk menarik pekerjaan sesuai permintaan.'],
+  'Bảng công việc': ['Task boards', '任务看板', 'Papan tugas'],
+  'Giới hạn việc dở dang': ['Limit work in progress', '限制在制品', 'Batasi pekerjaan berjalan'],
+  'Cải thiện dòng chảy': ['Improve flow', '改善流动', 'Perbaiki alur'],
+  'Tự động hóa có trí tuệ': ['Automation with a human touch', '自働化', 'Otomasi dengan sentuhan manusia'],
+  'Máy và người dừng lại khi có bất thường để sửa tận gốc.': ['Machines and people stop at any abnormality to fix the root cause.', '出现异常时人与机器停下来，从根本上解决。', 'Mesin dan orang berhenti saat ada kelainan untuk memperbaiki akar masalah.'],
+  'Dừng và xử lý': ['Stop & fix problems', '停止并处理', 'Hentikan & perbaiki'],
+  'Kiểm soát chất lượng': ['Quality control', '质量控制', 'Pengendalian mutu'],
+  'Chất lượng tại nguồn': ['Build in quality', '源头质量', 'Mutu dari sumber'],
+  'Chuyển đổi nhanh': ['Quick changeover', '快速换型', 'Pergantian cepat'],
+  'Rút ngắn thời gian chuyển đổi mã hàng xuống dưới 10 phút.': ['Cut product changeover time to under 10 minutes.', '将换款时间缩短到 10 分钟以内。', 'Persingkat waktu pergantian produk di bawah 10 menit.'],
+  'Tách việc trong/ngoài': ['Separate internal/external work', '区分内外作业', 'Pisahkan kerja internal/eksternal'],
+  'Chuẩn bị trước': ['Prepare in advance', '提前准备', 'Siapkan lebih dulu'],
+  'Đồ gá nhanh': ['Quick-release fixtures', '快速夹具', 'Perlengkapan lepas cepat'],
+  'Tiêu chuẩn hóa': ['Standardise', '标准化', 'Standardisasi'],
+  'Công việc chuẩn': ['Standard work', '标准作业', 'Kerja standar'],
+  'Cách làm tốt nhất hiện tại được viết ra và áp dụng thống nhất.': ['The current best way is written down and applied by everyone.', '将当前最佳做法写下来并统一执行。', 'Cara terbaik saat ini ditulis dan diterapkan seragam.'],
+  'Trình tự chuẩn': ['Standard sequence', '标准顺序', 'Urutan standar'],
+  'Tồn chuẩn': ['Standard WIP', '标准在制品', 'WIP standar'],
+  'Quản lý trực quan': ['Visual management', '目视管理', 'Manajemen visual'],
+  'Nhìn là hiểu': ['Understand at a glance', '一目了然', 'Paham sekilas'],
+  'Vạch sơn, nhãn, bảng đèn giúp phát hiện bất thường trong vài giây.': ['Floor lines, labels and andon boards reveal abnormalities in seconds.', '地线、标签、安灯板让异常几秒内就能发现。', 'Garis lantai, label, dan papan andon menunjukkan kelainan dalam hitungan detik.'],
+  'Vạch kẻ, nhãn mác': ['Floor lines, labels', '地线、标签', 'Garis lantai, label'],
+  'Bảng hiệu suất': ['Performance boards', '绩效看板', 'Papan kinerja'],
+  'Bảo trì năng suất toàn diện': ['Total productive maintenance', '全员生产维护', 'Pemeliharaan produktif total'],
+  'Người vận hành cùng bảo trì để máy không hỏng đột xuất.': ['Operators share maintenance so machines never break down unexpectedly.', '操作员参与维护，避免设备突发故障。', 'Operator ikut merawat agar mesin tidak rusak mendadak.'],
+  'Bảo trì tự quản': ['Autonomous maintenance', '自主保全', 'Pemeliharaan mandiri'],
+  'Bảo trì phòng ngừa': ['Preventive maintenance', '预防保全', 'Pemeliharaan preventif'],
+  'Giải pháp khác': ['Other solution', '其他方案', 'Solusi lain'],
+  'Cải tiến không thuộc các công cụ trên.': ['Improvements that do not fit the tools above.', '不属于以上工具的改善。', 'Perbaikan di luar alat di atas.'],
+  'Đến tận nơi, xem tận mắt': ['Go and see the workplace', '亲临现场，亲眼观察', 'Datang dan lihat langsung'],
+  'Quan sát quy trình tại hiện trường, nhận diện vấn đề và lắng nghe người lao động.': ['Observe processes on the floor, identify issues and listen to employees.', '在现场观察流程，识别问题，倾听员工。', 'Amati proses di lapangan, kenali masalah, dan dengarkan karyawan.'],
+  'Muda · Mura · Muri': ['Muda · Mura · Muri', '浪费 · 不均 · 过载', 'Muda · Mura · Muri'],
+  'Muda là lãng phí, Mura là không đồng đều, Muri là quá tải. Loại bỏ cả ba để dòng chảy ổn định.': ['Muda is waste, Mura is unevenness, Muri is overburden. Remove all three for a stable flow.', 'Muda 是浪费，Mura 是不均衡，Muri 是过载。消除三者，流程才能稳定。', 'Muda adalah pemborosan, Mura ketidakmerataan, Muri beban berlebih. Hilangkan ketiganya untuk alur yang stabil.'],
+
+  // ---- principles
+  'Liên tục hoàn thiện thói quen và hệ thống, mỗi ngày một chút.': ['Keep refining habits and systems, a little every day.', '每天进步一点，持续完善习惯与系统。', 'Terus menyempurnakan kebiasaan dan sistem, sedikit setiap hari.'],
+  'Loại bỏ lãng phí': ['Eliminate waste', '消除浪费', 'Hilangkan pemborosan'],
+  'Bỏ đi thời gian, công sức và nguồn lực không tạo giá trị.': ['Remove time, effort and resources that add no value.', '去除不创造价值的时间、精力与资源。', 'Buang waktu, tenaga, dan sumber daya yang tidak bernilai.'],
+  'Viết ra cách làm tốt nhất để mọi người làm giống nhau.': ['Write down the best way so everyone works the same way.', '写下最佳做法，让大家做法一致。', 'Tuliskan cara terbaik agar semua orang bekerja sama.'],
+  'Trao quyền cho mọi người': ['Empower everyone', '全员赋能', 'Berdayakan semua orang'],
+  'Ai cũng có thể đề xuất, từ công nhân đến giám đốc.': ['Anyone can propose, from worker to director.', '从工人到厂长，人人都能提案。', 'Siapa pun bisa mengusulkan, dari pekerja hingga direktur.'],
+  'Tập trung thay đổi nhỏ': ['Focus on small changes', '聚焦小改变', 'Fokus pada perubahan kecil'],
+  'Cải tiến nhỏ cộng dồn thành kết quả lớn.': ['Small improvements add up to big results.', '小改善累积成大成果。', 'Perbaikan kecil menghasilkan hasil besar.'],
+  'Tư duy giải quyết vấn đề': ['Problem-solving mindset', '解决问题的思维', 'Pola pikir pemecahan masalah'],
+  'Tìm nguyên nhân gốc (5 Why), sửa hệ thống chứ không đổ lỗi.': ['Find the root cause (5 Whys); fix the system, do not blame.', '找根本原因（5 个为什么），改进系统而非指责。', 'Cari akar masalah (5 Why), perbaiki sistem, jangan menyalahkan.'],
+  'Cải tiến quy trình': ['Improve the process', '改善流程', 'Perbaiki proses'],
+  'Quy trình tốt tạo ra kết quả tốt.': ['Good processes create good results.', '好的流程带来好的结果。', 'Proses yang baik menghasilkan hasil yang baik.'],
+  'Quyết định dựa trên dữ liệu': ['Data-driven decisions', '数据驱动决策', 'Keputusan berbasis data'],
+  'Đo lường và quan sát tại Gemba trước khi kết luận.': ['Measure and observe at the Gemba before concluding.', '在现场测量和观察后再下结论。', 'Ukur dan amati di Gemba sebelum menyimpulkan.'],
+  'Hợp tác & làm việc nhóm': ['Collaboration & teamwork', '协作与团队合作', 'Kolaborasi & kerja tim'],
+  'Chia sẻ ý tưởng, cùng nhau nhân rộng cải tiến.': ['Share ideas and spread improvements together.', '分享想法，共同推广改善。', 'Berbagi ide dan menyebarkan perbaikan bersama.'],
+  'Tư duy dài hạn': ['Long-term thinking', '长期思维', 'Berpikir jangka panjang'],
+  'Tiến bộ đều đặn tạo tăng trưởng bền vững.': ['Steady progress creates sustainable growth.', '稳步进步带来可持续成长。', 'Kemajuan yang konsisten menciptakan pertumbuhan berkelanjutan.'],
+
+  // ---- belts
+  'Đai Trắng': ['White Belt', '白带', 'Sabuk Putih'],
+  'Đai Vàng': ['Yellow Belt', '黄带', 'Sabuk Kuning'],
+  'Đai Xanh': ['Green Belt', '绿带', 'Sabuk Hijau'],
+  'Đai Đen': ['Black Belt', '黑带', 'Sabuk Hitam'],
+  'Đai Đen Bậc Thầy': ['Master Black Belt', '黑带大师', 'Master Sabuk Hitam'],
+  'Hiểu khái niệm Kaizen và 8 lãng phí. Bắt đầu gửi ý tưởng đầu tiên.': ['Understands Kaizen and the 8 wastes. Submits a first idea.', '了解改善与 8 大浪费，提交第一条提案。', 'Memahami Kaizen dan 8 pemborosan. Mengajukan ide pertama.'],
+  'Học nền tảng': ['Learn the fundamentals', '学习基础', 'Pelajari dasar'],
+  'Tham gia cải tiến thường xuyên, hoàn thành các Quick Win tại chuyền.': ['Takes part regularly and completes Quick Wins on the line.', '经常参与改善，完成产线快速改善。', 'Rutin berpartisipasi dan menyelesaikan Quick Win di lini.'],
+  'Hỗ trợ quy trình': ['Support the process', '支持流程', 'Dukung proses'],
+  'Dẫn dắt dự án cải tiến vừa, dùng công cụ Lean để đo lường.': ['Leads medium projects using Lean tools to measure.', '主导中型改善项目，用精益工具测量。', 'Memimpin proyek menengah dengan alat Lean untuk mengukur.'],
+  'Thực hành & cải tiến': ['Practise & improve', '实践与改善', 'Praktik & perbaiki'],
+  'Dẫn dắt dự án phức tạp, kèm cặp đồng nghiệp.': ['Leads complex projects and mentors colleagues.', '主导复杂项目，辅导同事。', 'Memimpin proyek kompleks dan membimbing rekan.'],
+  'Dẫn dắt & kèm cặp': ['Lead & mentor', '领导与辅导', 'Pimpin & bimbing'],
+  'Định hướng chiến lược cải tiến toàn nhà máy, đào tạo Đai Đen.': ['Sets plant-wide improvement strategy and develops Black Belts.', '制定全厂改善战略，培养黑带。', 'Menetapkan strategi perbaikan pabrik dan membina Sabuk Hitam.'],
+  'Chiến lược & chuyển đổi': ['Strategise & transform', '战略与转型', 'Strategi & transformasi'],
+
+  // ---- common errors from the server
+  'Cần tải ít nhất một ảnh After trước khi hoàn thành': ['Upload at least one After photo before completing', '完成前请至少上传一张改善后照片', 'Unggah minimal satu foto After sebelum menyelesaikan'],
+  'Cần nhập lý do khi từ chối hoặc yêu cầu sửa': ['A reason is required to reject or request changes', '拒绝或要求修改时必须填写理由', 'Alasan wajib saat menolak atau meminta revisi'],
+  'comment (reason) is required when rejecting or requesting revision': ['A reason is required to reject or request changes', '拒绝或要求修改时必须填写理由', 'Alasan wajib saat menolak atau meminta revisi'],
+  'upload at least one AFTER photo before completing': ['Upload at least one After photo before completing', '完成前请至少上传一张改善后照片', 'Unggah minimal satu foto After sebelum menyelesaikan'],
+};
+
+let lang = 'vi';
+try { lang = localStorage.getItem('kz_lang') || ''; } catch { /* storage blocked */ }
+if (!LANGS.some((l) => l.code === lang)) {
+  const n = (navigator.language || 'vi').slice(0, 2).toLowerCase();
+  lang = LANGS.some((l) => l.code === n) ? n : 'vi';
+}
+
+const getLang = () => lang;
+const locale = () => LANGS.find((l) => l.code === lang).locale;
+function setLang(code) {
+  lang = code;
+  try { localStorage.setItem('kz_lang', code); } catch { /* ignore */ }
+  document.documentElement.lang = code;
+}
+
+// Translate a key and fill {params}. Params are inserted as given (callers escape user data).
+function t(key, params) {
+  let s = key;
+  if (lang !== 'vi' && D[key]) s = D[key][IDX[lang]] ?? key;
+  if (params) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in params ? params[k] : m));
+  return s;
+}
+
+// Translate static Vietnamese text already in the DOM (text nodes and a few attributes).
+const ATTRS = ['placeholder', 'aria-label', 'title', 'alt'];
+function trText(node) {
+  const raw = node.nodeValue, key = raw.trim();
+  if (!key || !D[key]) return;
+  node.nodeValue = raw.replace(key, D[key][IDX[lang]]);
+}
+const SKIP = { acceptNode: (n) => (n.nodeType === 1 && (n.tagName === 'SCRIPT' || n.tagName === 'STYLE' || n.hasAttribute('data-notr')) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) };
+function trAttrs(el) {
+  for (const a of ATTRS) { const v = el.getAttribute(a); if (v && D[v.trim()]) el.setAttribute(a, D[v.trim()][IDX[lang]]); }
+}
+function translateTree(root) {
+  if (lang === 'vi' || !root) return;
+  if (root.nodeType === 3) { if (!root.parentElement?.closest('[data-notr]')) trText(root); return; }
+  if (root.nodeType !== 1 || root.closest('[data-notr]')) return;
+  trAttrs(root);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, SKIP);
+  let n;
+  while ((n = w.nextNode())) n.nodeType === 3 ? trText(n) : trAttrs(n);
+}
+function startAutoTranslate() {
+  document.documentElement.lang = lang;
+  translateTree(document.body);
+  new MutationObserver((muts) => {
+    if (lang === 'vi') return;
+    for (const m of muts) m.addedNodes.forEach((n) => translateTree(n));
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
 // ---- app.js ----
 
 // ============ helpers ============
@@ -1279,27 +1890,29 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const app = $('#app');
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const nf = new Intl.NumberFormat('vi-VN');
+const nf = { format: (v) => new Intl.NumberFormat(locale()).format(v) };
 const money = (v) => nf.format(Math.round(v || 0)) + ' ₫';
+const UNITS = { vi: ['tỷ', 'tr'], en: ['B', 'M'], zh: ['十亿', '百万'], id: ['M', 'jt'] };
 const moneyShort = (v) => {
   v = +v || 0;
-  if (Math.abs(v) >= 1e9) return (v / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ';
-  if (Math.abs(v) >= 1e6) return (v / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tr';
+  const u = UNITS[getLang()];
+  if (Math.abs(v) >= 1e9) return (v / 1e9).toLocaleString(locale(), { maximumFractionDigits: 2 }) + ' ' + u[0];
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toLocaleString(locale(), { maximumFractionDigits: 1 }) + ' ' + u[1];
   return nf.format(Math.round(v)) + ' ₫';
 };
-const dt = (v) => (v ? new Date(v).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—');
-const dtt = (v) => (v ? new Date(v).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
+const dt = (v) => (v ? new Date(v).toLocaleDateString(locale(), { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—');
+const dtt = (v) => (v ? new Date(v).toLocaleString(locale(), { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
 function ago(v) {
   if (!v) return '';
   const s = (Date.now() - new Date(v)) / 1000;
-  if (s < 60) return 'vừa xong';
-  if (s < 3600) return Math.floor(s / 60) + ' phút trước';
-  if (s < 86400) return Math.floor(s / 3600) + ' giờ trước';
-  if (s < 86400 * 30) return Math.floor(s / 86400) + ' ngày trước';
+  if (s < 60) return t('vừa xong');
+  if (s < 3600) return t('{n} phút trước', { n: Math.floor(s / 60) });
+  if (s < 86400) return t('{n} giờ trước', { n: Math.floor(s / 3600) });
+  if (s < 86400 * 30) return t('{n} ngày trước', { n: Math.floor(s / 86400) });
   return dt(v);
 }
 const initials = (n) => String(n || '?').trim().split(/\s+/).slice(-2).map((w) => w[0]).join('').toUpperCase();
-const avatar = (n, cls = '') => `<span class="avatar ${cls}" aria-hidden="true">${esc(initials(n))}</span>`;
+const avatar = (n, cls = '') => `<span class="avatar ${cls}" aria-hidden="true" data-notr>${esc(initials(n))}</span>`;
 const pill = (s) => `<span class="pill t-${(STATUS[s] || STATUS.DRAFT).tone}">${esc((STATUS[s] || { vi: s }).vi)}</span>`;
 const wasteTags = (list = [], max = 3) => (list || []).slice(0, max).map((w) => WASTE[w] ? `<span class="tag">${icon(WASTE[w].icon, 13)}${WASTE[w].vi}</span>` : '').join('')
   + ((list || []).length > max ? `<span class="tag">+${list.length - max}</span>` : '');
@@ -1311,9 +1924,9 @@ const isApprover = () => ['LEADER', 'IE', 'FINANCE', 'ADMIN'].includes(role());
 const empty = (ic, title, text, cta = '') => `<div class="empty">${icon(ic, 34)}<h3>${title}</h3><p>${text}</p>${cta ? `<p style="margin-top:14px">${cta}</p>` : ''}</div>`;
 
 function toast(msg, ic = 'check') {
-  const t = $('#toast');
-  t.innerHTML = icon(ic, 18) + esc(msg); t.hidden = false;
-  clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3200);
+  const el = $('#toast');
+  el.innerHTML = icon(ic, 18) + esc(t(msg)); el.hidden = false;
+  clearTimeout(toast.tm); toast.tm = setTimeout(() => (el.hidden = true), 3200);
 }
 
 // chart tooltips: any element with data-tip
@@ -1345,21 +1958,29 @@ function renderShell(route) {
       return vis.length ? `<div class="nav-group">${g}</div>` + vis.map(([k, ic, label]) => `
         <a class="nav-link ${route === k ? 'active' : ''}" href="#/${k}">${icon(ic, 19)}<span>${label}</span>${k === 'approvals' && pendingCount ? `<span class="count">${pendingCount}</span>` : ''}</a>`).join('') : '';
     }).join('')}
-    <div class="side-foot">${beltSvg(b, 36)}<div class="who"><b>${esc(u.name)}</b><span>${esc(ROLES[u.role] || u.role)} · ${b.vi}</span></div>
+    <div class="side-foot">${beltSvg(b, 36)}<div class="who"><b data-notr>${esc(u.name)}</b><span>${esc(t(ROLES[u.role] || u.role))} · ${t(b.vi)}</span></div>
       <button class="icon-btn" id="logout" title="Đăng xuất" aria-label="Đăng xuất">${icon('logout', 18)}</button></div>`;
   $('#crumb').textContent = TITLES[route] ?? '';
   $('#menu').innerHTML = icon('menu', 22);
   $('#top-new').innerHTML = icon('plus', 18) + 'Đề xuất cải tiến';
   $('#demo-tag').innerHTML = DEMO ? '<span class="demo-tag">DEMO</span>' : '';
+  $('#lang').innerHTML = langSelect('lang-top');
   const tab = (k, ic, label) => `<a href="#/${k}" class="${route === k ? 'active' : ''}">${icon(ic, 22)}${label}</a>`;
   $('#tabbar').innerHTML = tab('', 'home', 'Tổng quan') + tab('ideas', 'bulb', 'Sáng kiến')
     + `<a href="#/new" aria-label="Đề xuất cải tiến"><span class="fab">${icon('camera', 24)}</span></a>`
-    + (isApprover() ? tab('approvals', 'approve', pendingCount ? `Duyệt (${pendingCount})` : 'Duyệt') : tab('leaderboard', 'trophy', 'Bảng vàng'))
+    + (isApprover() ? tab('approvals', 'approve', pendingCount ? t('Duyệt ({n})', { n: pendingCount }) : 'Duyệt') : tab('leaderboard', 'trophy', 'Bảng vàng'))
     + `<button id="more">${icon('menu', 22)}Thêm</button>`;
   $('#logout').onclick = () => { session.clear(); location.hash = '#/login'; };
   $('#more').onclick = $('#menu').onclick = () => document.body.classList.add('drawer');
   $('#scrim').onclick = () => document.body.classList.remove('drawer');
 }
+
+function langSelect(id) {
+  return `<label class="lang" data-short="${LANGS.find((l) => l.code === getLang()).short}" title="${t('Ngôn ngữ')}">${icon('globe', 16)}<select id="${id}" aria-label="${t('Ngôn ngữ')}" data-notr>${LANGS.map((l) => `<option value="${l.code}" ${l.code === getLang() ? 'selected' : ''}>${l.short} · ${l.label}</option>`).join('')}</select></label>`;
+}
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'lang-top' || e.target.id === 'lang-login') { setLang(e.target.value); updateNet(); render(); }
+});
 
 async function refreshCounters() {
   try {
@@ -1373,7 +1994,8 @@ function updateNet() {
   n.classList.toggle('off', !navigator.onLine);
   n.innerHTML = `<span class="net-txt">${navigator.onLine ? 'Trực tuyến' : 'Ngoại tuyến'}</span>`;
 }
-window.addEventListener('online', () => { updateNet(); sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh')); });
+const synced = (k) => toast(t('Đã đồng bộ {n} sáng kiến', { n: k }), 'refresh');
+window.addEventListener('online', () => { updateNet(); sync(synced); });
 window.addEventListener('offline', updateNet);
 
 // ============ router ============
@@ -1419,7 +2041,7 @@ function viewLogin() {
       <p class="small" style="color:var(--side-muted)">Nhỏ hôm nay · Mạnh ngày mai</p>
     </section>
     <section class="login-form"><div class="box">
-      <div><h1>Đăng nhập</h1><p class="muted">Dùng mã nhân viên do quản trị cấp.</p></div>
+      <div class="row" style="align-items:flex-start"><div class="grow"><h1>Đăng nhập</h1><p class="muted">Dùng mã nhân viên do quản trị cấp.</p></div>${langSelect('lang-login')}</div>
       <form id="lf" class="stack">
         <div class="field"><label class="f" for="lf-code">Mã nhân viên</label><input id="lf-code" name="employee_code" required autocomplete="username" placeholder="VD: CN001"></div>
         <div class="field"><label class="f" for="lf-pw">Mật khẩu</label><input id="lf-pw" name="password" type="password" required autocomplete="current-password"></div>
@@ -1427,7 +2049,7 @@ function viewLogin() {
       </form>
       ${DEMO ? `<div class="stack" style="gap:10px"><div class="eyebrow">Bản demo · chọn vai trò để vào nhanh</div>
         <div class="quick">${demoUsers.map(([c, l, d]) => `<button data-quick="${c}">${avatar(l)}<span><b>${l}</b><span>${d}</span></span></button>`).join('')}</div>
-        <p class="small muted">Dữ liệu demo chỉ lưu trong trình duyệt của bạn. <button class="linkbtn" id="reset">Khôi phục dữ liệu mẫu</button></p></div>` : ''}
+        <p class="small muted"><span>Dữ liệu demo chỉ lưu trong trình duyệt của bạn.</span> <button class="linkbtn" id="reset">Khôi phục dữ liệu mẫu</button></p></div>` : ''}
     </div></section></div>`;
   const doLogin = async (fd) => {
     try {
@@ -1460,39 +2082,39 @@ async function viewHome() {
 
   const todos = [
     ...outbox.map((o) => ({ ic: 'wifiOff', cls: 'info', t: o.fields.title, s: 'Đang chờ có mạng để đồng bộ', href: '#/ideas' })),
-    ...pend.map((a) => ({ ic: 'approve', t: a.title, s: `Chờ bạn duyệt cấp ${a.level === 'LEADER' ? 'Tổ trưởng' : a.level === 'IE' ? 'Ban Kaizen' : 'Kế toán'} · ${a.waiting_hours} giờ`, href: '#/approvals' })),
+    ...pend.map((a) => ({ ic: 'approve', t: a.title, s: t('Chờ bạn duyệt cấp {lvl} · {h} giờ', { lvl: t(a.level === 'LEADER' ? 'Tổ trưởng' : a.level === 'IE' ? 'Ban Kaizen' : 'Kế toán'), h: a.waiting_hours }), href: '#/approvals' })),
     ...mine.items.filter((i) => i.status === 'REVISION_REQUESTED').map((i) => ({ ic: 'alert', t: i.title, s: 'Người duyệt yêu cầu chỉnh sửa', href: '#/kaizen/' + i.id })),
     ...mine.items.filter((i) => i.status === 'DRAFT').map((i) => ({ ic: 'doc', cls: 'info', t: i.title, s: 'Bản nháp chưa gửi duyệt', href: '#/kaizen/' + i.id })),
     ...assigned.map((i) => ({ ic: i.status === 'QUICK_WIN' ? 'camera' : 'board', cls: 'info', t: i.title, s: i.status === 'QUICK_WIN' ? 'Thực hiện và tải ảnh After' : 'Cập nhật tiến độ Kanban', href: '#/kaizen/' + i.id })),
   ];
   const myDone = mine.items.filter((i) => i.status === 'COMPLETED').length;
   const mySaving = mine.items.filter((i) => i.status === 'COMPLETED').reduce((s, i) => s + (i.estimated_saving || 0), 0);
-  const scopeLabel = u.role === 'WORKER' ? 'của bạn' : u.role === 'LEADER' ? 'trong xưởng' : 'toàn nhà máy';
+  const scopeLabel = u.role === 'WORKER' ? 'Sáng kiến của bạn' : u.role === 'LEADER' ? 'Sáng kiến trong xưởng' : 'Sáng kiến toàn nhà máy';
   const feedIc = (k) => k === 'SUBMITTED' ? ['bulb', ''] : k === 'COMPLETED' ? ['trophy', 'good'] : k === 'COMMENT' ? ['message', ''] : k.endsWith('REJECTED') ? ['x', 'bad'] : k.endsWith('APPROVED') ? ['check', 'good'] : ['refresh', ''];
-  const feedTxt = (a) => ({ SUBMITTED: 'đã gửi sáng kiến', COMPLETED: 'đã hoàn thành sáng kiến', COMMENT: 'đã bình luận về' }[a.kind]
-    || `${{ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.kind.split('_')[0]] || ''} ${a.kind.endsWith('APPROVED') ? 'đã duyệt' : a.kind.endsWith('REJECTED') ? 'đã từ chối' : 'yêu cầu sửa'}`);
+  const feedTxt = (a) => t({ SUBMITTED: 'đã gửi sáng kiến', COMPLETED: 'đã hoàn thành sáng kiến', COMMENT: 'đã bình luận về' }[a.kind]
+    || (a.kind.endsWith('APPROVED') ? '{who} đã duyệt' : a.kind.endsWith('REJECTED') ? '{who} đã từ chối' : '{who} yêu cầu sửa'), { who: t({ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.kind.split('_')[0]] || '') });
 
   app.innerHTML = `
     <section class="hero">
       <div class="card hello">
-        <div class="date">${new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
-        <h1>${greet}, ${esc(u.name.split(' ').slice(-1)[0])}.</h1>
-        <div class="quote"><b>Nguyên tắc Kaizen hôm nay</b>${esc(pr[1])}. ${esc(pr[2])}</div>
+        <div class="date">${new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <h1>${t(greet)}, <span data-notr>${esc(u.name.split(' ').slice(-1)[0])}</span>.</h1>
+        <div class="quote"><b>Nguyên tắc Kaizen hôm nay</b>${esc(t(pr[1]))}. ${esc(t(pr[2]))}</div>
         <div class="row"><a class="btn" href="#/new">${icon('camera', 18)}Đề xuất cải tiến</a><a class="btn ghost" href="#/academy">${icon('book', 18)}Học viện Lean</a></div>
       </div>
       <div class="card beltcard">
-        <div class="b-head">${beltSvg(b, 64)}<div class="grow"><div class="eyebrow">Cấp đai Kaizen của bạn</div><div class="b-name">${b.vi}</div><div class="muted small">${m.total_points || 0} điểm cải tiến</div></div></div>
+        <div class="b-head">${beltSvg(b, 64)}<div class="grow"><div class="eyebrow">Cấp đai Kaizen của bạn</div><div class="b-name">${t(b.vi)}</div><div class="muted small">${t('{n} điểm cải tiến', { n: m.total_points || 0 })}</div></div></div>
         <div class="progress" role="progressbar" aria-valuenow="${b.pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${b.pct}%"></span></div>
-        <div class="small muted">${b.next ? `Còn <b>${b.toNext} điểm</b> để lên <b>${b.next.vi}</b>. Mỗi Quick Win +10, mỗi dự án lớn +50.` : 'Bạn đã đạt cấp đai cao nhất.'}</div>
-        <div class="ladder">${BELTS.map((x, i) => `<span style="background:${x.color};opacity:${i <= b.index ? 1 : .3}" title="${x.vi}"></span>`).join('')}</div>
+        <div class="small muted">${b.next ? t('Còn {n} điểm để lên {belt}. Mỗi Quick Win +10, mỗi dự án lớn +50.', { n: `<b>${b.toNext}</b>`, belt: `<b>${t(b.next.vi)}</b>` }) : t('Bạn đã đạt cấp đai cao nhất.')}</div>
+        <div class="ladder">${BELTS.map((x, i) => `<span style="background:${x.color};opacity:${i <= b.index ? 1 : .3}" title="${t(x.vi)}"></span>`).join('')}</div>
         <a href="#/leaderboard" class="small" style="font-weight:600">Xem Bảng vàng ${icon('chevR', 14)}</a>
       </div>
     </section>
 
     <section class="grid g4" style="margin-bottom:20px">
-      ${kpi('bulb', `Sáng kiến ${scopeLabel}`, sum.total_ideas, `${sum.participants} người tham gia`, spark(trend.map((t) => +t.submitted)))}
-      ${kpi('check', 'Đã hoàn thành', sum.completed, `Tỷ lệ hoàn thành ${sum.completion_rate}%`, spark(trend.map((t) => +t.completed)))}
-      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(sum.verified_saving), `Ước tính ${moneyShort(sum.estimated_saving)}/năm`)}
+      ${kpi('bulb', scopeLabel, sum.total_ideas, t('{n} người tham gia', { n: sum.participants }), spark(trend.map((x) => +x.submitted)))}
+      ${kpi('check', 'Đã hoàn thành', sum.completed, t('Tỷ lệ hoàn thành {n}%', { n: sum.completion_rate }), spark(trend.map((x) => +x.completed)))}
+      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(sum.verified_saving), t('Ước tính {v}/năm', { v: moneyShort(sum.estimated_saving) }))}
       ${kpi('clock', 'Thời gian sơ duyệt TB', `${sum.avg_leader_response_hours}<small> giờ</small>`, sum.avg_leader_response_hours <= 48 ? '<span style="color:var(--good);font-weight:700">Đạt mục tiêu dưới 48 giờ</span>' : '<span style="color:var(--bad);font-weight:700">Vượt mục tiêu 48 giờ</span>')}
     </section>
 
@@ -1504,14 +2126,14 @@ async function viewHome() {
     <section class="grid g2">
       <div class="card">
         <div class="card-h"><h2>Việc cần làm</h2><span class="pill ${todos.length ? 't-warn' : 't-good'}">${todos.length}</span></div>
-        ${todos.length ? todos.slice(0, 8).map((t) => `<a class="todo" href="${t.href}"><span class="t-ic ${t.cls || ''}">${icon(t.ic, 18)}</span><span class="t-main"><b>${esc(t.t)}</b><span>${esc(t.s)}</span></span>${icon('chevR', 16)}</a>`).join('')
+        ${todos.length ? todos.slice(0, 8).map((x) => `<a class="todo" href="${x.href}"><span class="t-ic ${x.cls || ''}">${icon(x.ic, 18)}</span><span class="t-main"><b data-notr>${esc(x.t)}</b><span>${esc(t(x.s))}</span></span>${icon('chevR', 16)}</a>`).join('')
           : empty('check', 'Không còn việc tồn', 'Bạn đã xử lý xong mọi việc. Hãy đi một vòng Gemba để tìm cơ hội cải tiến mới.')}
         <div class="card-b" style="border-top:1px solid var(--line-2)"><div class="row"><span class="grow small muted">Sáng kiến của tôi: <b style="color:var(--ink)">${mine.total}</b> · hoàn thành <b style="color:var(--ink)">${myDone}</b> · ước tính tiết kiệm <b style="color:var(--ink)">${moneyShort(mySaving)}</b></span><a class="small" style="font-weight:600" href="#/ideas?mine=true">Xem tất cả</a></div></div>
       </div>
       <div class="card">
         <div class="card-h"><h2>Hoạt động gần đây</h2></div>
         ${act.length ? `<ul class="feed">${act.slice(0, 8).map((a) => { const [ic, c] = feedIc(a.kind); return `<li><span class="f-ic ${c}">${icon(ic, 15)}</span>
-          <div class="f-txt"><b>${esc(a.actor)}</b> ${feedTxt(a)} <a href="#/kaizen/${a.idea_id}">${esc(a.title)}</a>${a.detail ? `<q>${esc(a.detail)}</q>` : ''}<time style="display:block">${ago(a.at)}</time></div></li>`; }).join('')}</ul>`
+          <div class="f-txt"><b data-notr>${esc(a.actor)}</b> ${feedTxt(a)} <a href="#/kaizen/${a.idea_id}" data-notr>${esc(a.title)}</a>${a.detail ? `<q data-notr>${esc(a.detail)}</q>` : ''}<time style="display:block">${ago(a.at)}</time></div></li>`; }).join('')}</ul>`
           : empty('clock', 'Chưa có hoạt động', 'Các sự kiện gửi, duyệt, bình luận sẽ hiển thị ở đây.')}
       </div>
     </section>`;
@@ -1528,11 +2150,11 @@ function ideaCard(k) {
   return `<a class="card idea" href="#/kaizen/${k.id}">
     <div class="thumb ${img ? '' : 'ph'}">${img ? `<img loading="lazy" src="${img}" alt="">` : icon(w && WASTE[w] ? WASTE[w].icon : 'bulb', 40)}${pill(k.status)}</div>
     <div class="i-body">
-      <div class="i-meta"><span class="mono">${esc(k.code)}</span> · ${esc(k.category)} · ${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</div>
-      <div class="i-title">${esc(k.title)}</div>
+      <div class="i-meta"><span class="mono">${esc(k.code)}</span> · ${esc(t(k.category))} · <span data-notr>${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</span></div>
+      <div class="i-title" data-notr>${esc(k.title)}</div>
       <div class="chips">${typeTag(k.kaizen_type)}${wasteTags(k.waste_types, 2)}</div>
     </div>
-    <div class="i-foot">${avatar(k.submitter)}<span class="grow" style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(k.submitter)}<br>${ago(k.submitted_at || k.created_at)}</span>
+    <div class="i-foot">${avatar(k.submitter)}<span class="grow" style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span data-notr>${esc(k.submitter)}</span><br>${ago(k.submitted_at || k.created_at)}</span>
       <span class="stat-ic">${icon('heart', 14)}${k.like_count || 0}</span><span class="stat-ic">${icon('message', 14)}${k.comment_count || 0}</span>
       ${k.estimated_saving ? `<span class="save">${moneyShort(k.estimated_saving)}</span>` : ''}</div></a>`;
 }
@@ -1559,13 +2181,13 @@ async function viewIdeas(_, params) {
     a.href = url; a.download = 'kaizen-export.csv'; a.click(); URL.revokeObjectURL(url);
   };
   const outbox = await pending().catch(() => []);
-  if (outbox.length) $('#out').innerHTML = `<div class="card pad" style="margin-bottom:16px;display:flex;gap:12px;align-items:center">${icon('wifiOff', 22)}<div><b>${outbox.length} sáng kiến đang chờ đồng bộ</b><div class="small muted">${outbox.map((o) => esc(o.fields.title)).join(' · ')}</div></div></div>`;
+  if (outbox.length) $('#out').innerHTML = `<div class="card pad" style="margin-bottom:16px;display:flex;gap:12px;align-items:center">${icon('wifiOff', 22)}<div><b>${t('{n} sáng kiến đang chờ đồng bộ', { n: outbox.length })}</b><div class="small muted" data-notr>${outbox.map((o) => esc(o.fields.title)).join(' · ')}</div></div></div>`;
 
   const load = async () => {
     const qs = new URLSearchParams({ page_size: 100 });
     Object.entries(st).forEach(([k, v]) => v && qs.set(k, v === true ? 'true' : v));
     const res = await api('/kaizens?' + qs);
-    $('#items').innerHTML = res.items.length ? `<p class="small muted" style="margin-bottom:10px">${res.total} sáng kiến</p><div class="ideas">${res.items.map(ideaCard).join('')}</div>`
+    $('#items').innerHTML = res.items.length ? `<p class="small muted" style="margin-bottom:10px">${t('{n} sáng kiến', { n: res.total })}</p><div class="ideas">${res.items.map(ideaCard).join('')}</div>`
       : `<div class="card">${empty('search', 'Không có sáng kiến phù hợp', 'Thử bỏ bớt bộ lọc, hoặc gửi đề xuất đầu tiên cho nhóm này.', '<a class="btn" href="#/new">Đề xuất cải tiến</a>')}</div>`;
   };
   let tmr;
@@ -1585,8 +2207,8 @@ async function viewBoard() {
   app.innerHTML = `<div class="page-h"><div class="grow"><h1>Bảng Kaizen</h1><p>Dòng chảy của mọi sáng kiến qua từng chặng phê duyệt. Cột dồn nhiều thẻ là nơi đang tắc nghẽn.</p></div></div>
     <div class="board-wrap"><div class="board">${lanes.map(([s, l, c]) => { const items = res.items.filter((i) => i.status === s); return `
       <section class="lane" style="--dot:${c}"><div class="lane-h">${l}<span class="n">${items.length}</span></div><div class="lane-b">
-        ${items.map((k) => `<a class="mini" href="#/kaizen/${k.id}"><span class="mono muted">${esc(k.code)}</span><b>${esc(k.title)}</b>
-          <div class="row">${avatar(k.submitter)}<span class="grow">${esc(k.submitter)}</span>${k.estimated_saving ? `<b style="margin:0;color:var(--good)">${moneyShort(k.estimated_saving)}</b>` : ''}</div>
+        ${items.map((k) => `<a class="mini" href="#/kaizen/${k.id}"><span class="mono muted">${esc(k.code)}</span><b data-notr>${esc(k.title)}</b>
+          <div class="row">${avatar(k.submitter)}<span class="grow" data-notr>${esc(k.submitter)}</span>${k.estimated_saving ? `<b style="margin:0;color:var(--good)">${moneyShort(k.estimated_saving)}</b>` : ''}</div>
           ${(k.waste_types || []).length ? `<div class="chips" style="margin-top:8px">${wasteTags(k.waste_types, 2)}</div>` : ''}</a>`).join('') || '<p class="small muted" style="padding:8px">Trống</p>'}
       </div></section>`; }).join('')}</div></div>`;
 }
@@ -1596,15 +2218,15 @@ async function viewApprovals() {
   const list = await api('/approvals/pending');
   const lvl = { LEADER: 'Sơ duyệt cấp Tổ', IE: 'Thẩm định Ban Kaizen', FINANCE: 'Thẩm định tài chính' };
   app.innerHTML = `<div class="page-h"><div class="grow"><h1>Phê duyệt</h1><p>Mục tiêu: phản hồi mọi sáng kiến trong vòng 48 giờ. Lý do là bắt buộc khi từ chối hoặc yêu cầu sửa.</p></div>
-      <span class="pill ${list.length ? 't-warn' : 't-good'}">${list.length} đang chờ</span></div>
+      <span class="pill ${list.length ? 't-warn' : 't-good'}">${t('{n} đang chờ', { n: list.length })}</span></div>
     <div class="stack">${list.map((a) => `
       <article class="card ap" data-ap="${a.approval_id}">
         ${a.thumb_id ? `<img class="ap-img" src="${fileUrl(a.thumb_id)}" alt="Ảnh hiện trường">` : `<div class="ap-img">${icon('image', 30)}</div>`}
         <div style="min-width:0">
-          <div class="row"><span class="tag type">${lvl[a.level]}</span><span class="sla ${a.waiting_hours > 48 ? 'late' : 'ok'}">${icon('clock', 14)}${a.waiting_hours} giờ${a.waiting_hours > 48 ? ' · quá hạn' : ''}</span><span class="grow"></span><span class="mono muted">${esc(a.code)}</span></div>
-          <h2 style="margin-top:6px"><a href="#/kaizen/${a.idea_id}" style="color:var(--ink)">${esc(a.title)}</a></h2>
-          <div class="small muted">${esc(a.submitter)} · ${esc(a.workshop)} · ${esc(a.category)}${a.estimated_saving ? ` · ước tính <b style="color:var(--good)">${money(a.estimated_saving)}</b>/năm` : ''}</div>
-          ${a.problem ? `<div class="ap-pair"><div><span class="eyebrow" style="color:var(--bad)">Hiện trạng</span><p>${esc(a.problem)}</p></div><div><span class="eyebrow" style="color:var(--good)">Đề xuất</span><p>${esc(a.proposal)}</p></div></div>` : ''}
+          <div class="row"><span class="tag type">${lvl[a.level]}</span><span class="sla ${a.waiting_hours > 48 ? 'late' : 'ok'}">${icon('clock', 14)}${t(a.waiting_hours > 48 ? '{h} giờ · quá hạn' : '{h} giờ', { h: a.waiting_hours })}</span><span class="grow"></span><span class="mono muted">${esc(a.code)}</span></div>
+          <h2 style="margin-top:6px" data-notr><a href="#/kaizen/${a.idea_id}" style="color:var(--ink)">${esc(a.title)}</a></h2>
+          <div class="small muted"><span data-notr>${esc(a.submitter)} · ${esc(a.workshop)}</span> · ${esc(t(a.category))}${a.estimated_saving ? ` · ${t('Ước tính {v}/năm', { v: `<b style="color:var(--good)">${money(a.estimated_saving)}</b>` })}` : ''}</div>
+          ${a.problem ? `<div class="ap-pair"><div><span class="eyebrow" style="color:var(--bad)">Hiện trạng</span><p data-notr>${esc(a.problem)}</p></div><div><span class="eyebrow" style="color:var(--good)">Đề xuất</span><p data-notr>${esc(a.proposal)}</p></div></div>` : ''}
           <div class="chips">${wasteTags(a.waste_types, 4)}${toolTag(a.lean_tool)}</div>
           <textarea placeholder="Ý kiến phản hồi cho người đề xuất (bắt buộc khi từ chối / yêu cầu sửa)" style="margin-top:12px;min-height:64px" aria-label="Ý kiến phản hồi"></textarea>
           ${a.level === 'FINANCE' ? `<div class="grid g2" style="margin-top:8px"><div class="field"><label class="f">Chi phí đầu tư thực tế (₫)</label><input data-k="investment_cost" type="number" min="0" step="1000"></div>
@@ -1623,7 +2245,7 @@ async function viewApprovals() {
     $$('[data-k]', card).forEach((i) => { if (i.value !== '') body[i.dataset.k] = +i.value; });
     try {
       const r = await api(`/approvals/${card.dataset.ap}/action`, { method: 'POST', body });
-      toast('Đã chuyển sang: ' + (STATUS[r.status]?.vi || r.status)); render();
+      toast(t('Đã chuyển sang: {s}', { s: t(STATUS[r.status]?.vi || r.status) })); render();
     } catch (e) { toast(e.message, 'alert'); }
   }));
 }
@@ -1644,7 +2266,7 @@ function lifecycle(k) {
   }
   return `<div class="card stepper" style="margin-bottom:20px">${steps.map((s, i) => {
     const c = i === fail ? 'fail' : i < cur ? 'done' : i === cur ? 'cur' : '';
-    return `<div class="step ${c}"><span class="dot">${icon(c === 'done' ? 'check' : c === 'fail' ? 'x' : s[2], 15)}</span>${i === fail ? 'Bị từ chối' : s[1]}</div>`;
+    return `<div class="step ${c}"><span class="dot">${icon(c === 'done' ? 'check' : c === 'fail' ? 'x' : s[2], 15)}</span>${t(i === fail ? 'Bị từ chối' : s[1])}</div>`;
   }).join('')}</div>`;
 }
 
@@ -1659,36 +2281,36 @@ async function viewDetail(id) {
   const f = k.financials;
   const imgs = (phase) => { const a = k.attachments.filter((x) => x.phase === phase); return a.length ? a.map((x) => x.content_type.startsWith('image/')
     ? `<a href="${fileUrl(x.id)}" target="_blank" rel="noopener"><img loading="lazy" src="${fileUrl(x.id)}" alt="${esc(x.file_name)}"></a>`
-    : `<a class="tag" href="${fileUrl(x.id)}" target="_blank" rel="noopener">${icon('doc', 13)}${esc(x.file_name)}</a>`).join('') : `<span class="none">Chưa có ảnh ${phase === 'AFTER' ? 'sau cải tiến' : 'hiện trạng'}</span>`; };
+    : `<a class="tag" href="${fileUrl(x.id)}" target="_blank" rel="noopener">${icon('doc', 13)}${esc(x.file_name)}</a>`).join('') : `<span class="none">${t(phase === 'AFTER' ? 'Chưa có ảnh sau cải tiến' : 'Chưa có ảnh hiện trạng')}</span>`; };
   const tasksBy = (s) => k.tasks.filter((t) => t.status === s);
 
   app.innerHTML = `
     <a class="back" href="#/ideas">${icon('chevL', 16)}Danh sách sáng kiến</a>
-    <div class="d-head"><div class="grow"><div class="row small muted" style="margin-bottom:6px"><span class="mono">${esc(k.code)}</span>·<span>${esc(k.category)}</span>·<span>${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</span></div>
-      <h1>${esc(k.title)}</h1><div class="chips" style="margin-top:10px">${pill(k.status)}${typeTag(k.kaizen_type)}${toolTag(k.lean_tool)}</div></div>
-      <button class="btn ghost like ${k.liked ? 'on' : ''}" id="like">${icon('heart', 18)}${k.like_count || 0} ủng hộ</button></div>
+    <div class="d-head"><div class="grow"><div class="row small muted" style="margin-bottom:6px"><span class="mono">${esc(k.code)}</span>·<span>${esc(t(k.category))}</span>·<span data-notr>${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</span></div>
+      <h1 data-notr>${esc(k.title)}</h1><div class="chips" style="margin-top:10px">${pill(k.status)}${typeTag(k.kaizen_type)}${toolTag(k.lean_tool)}</div></div>
+      <button class="btn ghost like ${k.liked ? 'on' : ''}" id="like">${icon('heart', 18)}${t('{n} ủng hộ', { n: k.like_count || 0 })}</button></div>
     ${lifecycle(k)}
     <div class="main-side">
       <div class="stack">
         <section class="card"><div class="compare">
-          <div class="before"><span class="lbl">${icon('alert', 14)}Trước cải tiến · Hiện trạng</span><p>${esc(k.problem)}</p><div class="gallery">${imgs('BEFORE')}</div></div>
-          <div class="after"><span class="lbl">${icon('sparkles', 14)}Sau cải tiến · Giải pháp</span><p>${esc(k.proposal)}</p><div class="gallery">${imgs('AFTER')}</div>
+          <div class="before"><span class="lbl">${icon('alert', 14)}Trước cải tiến · Hiện trạng</span><p data-notr>${esc(k.problem)}</p><div class="gallery">${imgs('BEFORE')}</div></div>
+          <div class="after"><span class="lbl">${icon('sparkles', 14)}Sau cải tiến · Giải pháp</span><p data-notr>${esc(k.proposal)}</p><div class="gallery">${imgs('AFTER')}</div>
             ${working ? `<label class="btn ghost sm" style="margin-top:10px">${icon('upload', 15)}Tải ảnh After<input type="file" id="up-after" accept="image/*,video/*" capture="environment" multiple hidden></label>` : ''}</div>
         </div>
-        ${k.expected_benefit ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lợi ích mong đợi</span><p>${esc(k.expected_benefit)}</p></div>` : ''}
+        ${k.expected_benefit ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lợi ích mong đợi</span><p data-notr>${esc(k.expected_benefit)}</p></div>` : ''}
         ${(k.waste_types || []).length ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lãng phí được loại bỏ</span><div class="chips" style="margin-top:6px">${wasteTags(k.waste_types, 8)}</div></div>` : ''}
         </section>
 
-        ${k.kaizen_type === 'MAJOR' ? `<section class="card"><div class="card-h"><h2>Kanban triển khai</h2><span class="muted small">${tasksBy('DONE').length}/${k.tasks.length} hoàn thành</span></div><div class="card-b">
+        ${k.kaizen_type === 'MAJOR' ? `<section class="card"><div class="card-h"><h2>Kanban triển khai</h2><span class="muted small">${t('{a}/{b} hoàn thành', { a: tasksBy('DONE').length, b: k.tasks.length })}</span></div><div class="card-b">
           <div class="kanban">${[['TODO', 'Cần làm'], ['IN_PROGRESS', 'Đang làm'], ['DONE', 'Hoàn thành']].map(([s, l]) => `<div class="kcol"><h4>${l}<span>${tasksBy(s).length}</span></h4>
-            ${tasksBy(s).map((t) => `<div class="ktask"><b>${esc(t.title)}</b><span class="small muted">${t.assignee ? esc(t.assignee) : 'Chưa giao'}${t.due_date ? ' · hạn ' + dt(t.due_date) : ''}</span>
-              ${working && canTasks ? `<div class="k-act">${s !== 'TODO' ? `<button data-t="${t.id}" data-s="${s === 'DONE' ? 'IN_PROGRESS' : 'TODO'}" aria-label="Lùi">${icon('chevL', 13)}</button>` : '<span></span>'}
-                ${s !== 'DONE' ? `<button data-t="${t.id}" data-s="${s === 'TODO' ? 'IN_PROGRESS' : 'DONE'}" aria-label="Tiến">${icon('chevR', 13)}</button>` : ''}</div>` : ''}</div>`).join('')}</div>`).join('')}</div>
+            ${tasksBy(s).map((x) => `<div class="ktask"><b data-notr>${esc(x.title)}</b><span class="small muted">${x.assignee ? `<span data-notr>${esc(x.assignee)}</span>` : t('Chưa giao')}${x.due_date ? ' · ' + t('hạn {d}', { d: dt(x.due_date) }) : ''}</span>
+              ${working && canTasks ? `<div class="k-act">${s !== 'TODO' ? `<button data-t="${x.id}" data-s="${s === 'DONE' ? 'IN_PROGRESS' : 'TODO'}" aria-label="Lùi">${icon('chevL', 13)}</button>` : '<span></span>'}
+                ${s !== 'DONE' ? `<button data-t="${x.id}" data-s="${s === 'TODO' ? 'IN_PROGRESS' : 'DONE'}" aria-label="Tiến">${icon('chevR', 13)}</button>` : ''}</div>` : ''}</div>`).join('')}</div>`).join('')}</div>
           ${canTasks && ['IMPLEMENTING', 'PENDING_IE'].includes(k.status) ? `<form id="task" class="row" style="margin-top:12px"><input name="title" placeholder="Thêm công việc triển khai…" required class="grow" style="flex:1 1 200px" aria-label="Tên công việc"><input name="due_date" type="date" style="width:auto" aria-label="Hạn"><button class="btn">${icon('plus', 16)}Thêm</button></form>` : ''}
         </div></section>` : ''}
 
-        <section class="card"><div class="card-h"><h2>Thảo luận</h2><span class="muted small">${k.comments.length} bình luận</span></div><div class="card-b stack">
-          <div class="comments">${k.comments.map((c) => `<div class="cmt">${avatar(c.full_name)}<div class="bubble"><b>${esc(c.full_name)}</b> <span class="small muted">· ${esc(ROLES[c.role] || '')} · ${ago(c.created_at)}</span><p>${esc(c.body)}</p></div></div>`).join('') || '<p class="small muted">Chưa có bình luận. Hãy góp ý để ý tưởng tốt hơn.</p>'}</div>
+        <section class="card"><div class="card-h"><h2>Thảo luận</h2><span class="muted small">${t('{n} bình luận', { n: k.comments.length })}</span></div><div class="card-b stack">
+          <div class="comments">${k.comments.map((c) => `<div class="cmt">${avatar(c.full_name)}<div class="bubble"><b data-notr>${esc(c.full_name)}</b> <span class="small muted">· ${esc(t(ROLES[c.role] || ''))} · ${ago(c.created_at)}</span><p data-notr>${esc(c.body)}</p></div></div>`).join('') || '<p class="small muted">Chưa có bình luận. Hãy góp ý để ý tưởng tốt hơn.</p>'}</div>
           <form id="cmt" class="row" style="align-items:flex-end"><textarea name="body" required maxlength="2000" placeholder="Góp ý, đặt câu hỏi, chia sẻ kinh nghiệm…" style="min-height:48px;flex:1 1 240px" aria-label="Bình luận"></textarea><button class="btn">${icon('send', 16)}Gửi</button></form>
         </div></section>
       </div>
@@ -1700,21 +2322,21 @@ async function viewDetail(id) {
           ${canComplete ? `<p class="small muted">${k.status === 'QUICK_WIN' ? 'Cần ít nhất một ảnh After.' : 'Mọi công việc phải xong và có ảnh After.'}</p><button class="btn" id="complete">${icon('check', 16)}${k.status === 'QUICK_WIN' ? 'Hoàn thành Quick Win' : 'Hoàn thành, chuyển Kế toán'}</button>` : ''}
         </section>` : ''}
         <section class="card pad stack" style="gap:12px"><h3>Thông tin</h3><dl class="kv">
-          <dt>Người đề xuất</dt><dd>${esc(k.submitter)}</dd>
-          <dt>Người phụ trách</dt><dd>${esc(k.assignee || '—')}</dd>
+          <dt>Người đề xuất</dt><dd data-notr>${esc(k.submitter)}</dd>
+          <dt>Người phụ trách</dt><dd data-notr>${esc(k.assignee || '—')}</dd>
           <dt>Ngày gửi</dt><dd>${dt(k.submitted_at)}</dd>
           <dt>Hoàn thành</dt><dd>${dt(k.completed_at)}</dd>
-          <dt>Ước tính tiết kiệm</dt><dd>${money(k.estimated_saving)}/năm</dd></dl></section>
+          <dt>Ước tính tiết kiệm</dt><dd>${t('{v}/năm', { v: money(k.estimated_saving) })}</dd></dl></section>
         ${f || canFin ? `<section class="card pad stack" style="gap:12px"><div class="row"><h3 class="grow">Hiệu quả tài chính</h3>${f?.verified ? '<span class="pill t-good">Đã xác thực</span>' : '<span class="pill t-neutral">Dự toán</span>'}</div>
           ${f ? `<div class="roi-big num">${f.roi_percent != null ? f.roi_percent + '%' : '—'}<small>ROI năm đầu</small></div>
             <dl class="kv"><dt>Chi phí đầu tư</dt><dd>${money(f.investment_cost)}</dd><dt>Tiết kiệm / năm</dt><dd>${money(f.annual_saving)}</dd>
-            <dt>Hoàn vốn</dt><dd>${f.payback_months != null ? f.payback_months + ' tháng' : '—'}</dd>${f.verified ? `<dt>Xác thực</dt><dd>${dt(f.verified_at)}</dd>` : ''}</dl>` : '<p class="small muted">Chưa nhập số liệu.</p>'}
+            <dt>Hoàn vốn</dt><dd>${f.payback_months != null ? t('{n} tháng', { n: f.payback_months }) : '—'}</dd>${f.verified ? `<dt>Xác thực</dt><dd>${dt(f.verified_at)}</dd>` : ''}</dl>` : '<p class="small muted">Chưa nhập số liệu.</p>'}
           ${canFin ? `<form id="fin" class="stack" style="gap:8px"><input name="investment_cost" type="number" min="0" step="1000" placeholder="Chi phí đầu tư (₫)" value="${f?.investment_cost ?? ''}" aria-label="Chi phí đầu tư"><input name="annual_saving" type="number" min="0" step="1000" placeholder="Tiết kiệm / năm (₫)" value="${f?.annual_saving ?? ''}" aria-label="Tiết kiệm mỗi năm"><button class="btn ghost">Lưu dự toán</button></form>` : ''}
         </section>` : ''}
-        ${k.rewards.length ? `<section class="card pad stack" style="gap:8px"><h3>Khen thưởng</h3>${k.rewards.map((w) => `<div class="reward">${icon('award', 22)}<div><b>${esc(w.full_name)}</b><div class="small">+${w.points} điểm${w.amount ? ' · thưởng ' + money(w.amount) : ''}</div></div></div>`).join('')}</section>` : ''}
+        ${k.rewards.length ? `<section class="card pad stack" style="gap:8px"><h3>Khen thưởng</h3>${k.rewards.map((w) => `<div class="reward">${icon('award', 22)}<div><b data-notr>${esc(w.full_name)}</b><div class="small">${w.amount ? t('+{p} điểm · thưởng {v}', { p: w.points, v: money(w.amount) }) : t('+{p} điểm', { p: w.points })}</div></div></div>`).join('')}</section>` : ''}
         <section class="card pad stack" style="gap:12px"><h3>Lịch sử phê duyệt</h3>
-          <ul class="timeline">${k.approvals.map((a) => `<li class="${a.status}"><b>${{ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.level]}</b> · ${{ PENDING: 'đang chờ', APPROVED: 'đã duyệt', REJECTED: 'từ chối', REVISION: 'yêu cầu sửa' }[a.status]}
-            <div class="small muted">${a.acted_by ? esc(a.acted_by) + ' · ' : ''}${dtt(a.acted_at || a.created_at)}</div>${a.comment ? `<q>${esc(a.comment)}</q>` : ''}</li>`).join('') || '<li class="small muted">Chưa gửi duyệt</li>'}</ul></section>
+          <ul class="timeline">${k.approvals.map((a) => `<li class="${a.status}"><b>${t({ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.level])}</b> · ${t({ PENDING: 'đang chờ', APPROVED: 'đã duyệt', REJECTED: 'từ chối', REVISION: 'yêu cầu sửa' }[a.status])}
+            <div class="small muted">${a.acted_by ? `<span data-notr>${esc(a.acted_by)}</span> · ` : ''}${dtt(a.acted_at || a.created_at)}</div>${a.comment ? `<q data-notr>${esc(a.comment)}</q>` : ''}</li>`).join('') || '<li class="small muted">Chưa gửi duyệt</li>'}</ul></section>
       </aside>
     </div>`;
 
@@ -1742,8 +2364,8 @@ async function viewNew(_, params) {
 
   const draw = () => {
     app.innerHTML = `<div class="wizard">
-      <div class="page-h"><div class="grow"><h1>Đề xuất cải tiến</h1><p>${qrLine ? `${icon('factory', 16)} ${esc(qrLine.workshop_name)} / <b>${esc(qrLine.name)}</b> (quét QR)` : 'Mô tả điều bạn thấy, điều bạn muốn thay đổi, và chụp ảnh hiện trường.'}</p></div></div>
-      <div class="wsteps">${STEPS.map((s, i) => `<div class="wstep ${i === step ? 'on' : i < step ? 'done' : ''}"><span class="n">${i < step ? '✓' : i + 1}</span><span class="t">${s}</span></div>`).join('')}</div>
+      <div class="page-h"><div class="grow"><h1>Đề xuất cải tiến</h1><p>${qrLine ? `${icon('factory', 16)} <span data-notr>${esc(qrLine.workshop_name)} / <b>${esc(qrLine.name)}</b></span> ${t('(quét QR)')}` : 'Mô tả điều bạn thấy, điều bạn muốn thay đổi, và chụp ảnh hiện trường.'}</p></div></div>
+      <div class="wsteps">${STEPS.map((s, i) => `<div class="wstep ${i === step ? 'on' : i < step ? 'done' : ''}"><span class="n">${i < step ? '✓' : i + 1}</span><span class="t">${t(s)}</span></div>`).join('')}</div>
       <form class="card pad stack" id="wf" novalidate>${[stepProblem, stepSolution, stepReview][step]()}</form>
       <div class="wfoot">${step ? `<button class="btn ghost" id="prev">${icon('chevL', 16)}Quay lại</button>` : '<span></span>'}
         <div class="row">${step === 2 ? `<button class="btn ghost" id="draft">Lưu nháp</button><button class="btn lg" id="send">${icon('send', 18)}Gửi duyệt</button>` : `<button class="btn lg" id="next">Tiếp tục${icon('arrowR', 18)}</button>`}</div></div></div>`;
@@ -1765,10 +2387,10 @@ async function viewNew(_, params) {
       <input type="file" id="w-files" accept="image/*,video/*" capture="environment" multiple></label>
     <div class="previews" id="pv">${d.files.map((f, i) => `<figure>${f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" alt="">` : `<span class="tag">${esc(f.name)}</span>`}<button type="button" data-rm="${i}" aria-label="Xóa ảnh">${icon('x', 12)}</button></figure>`).join('')}</div>
     <h3 style="margin-top:8px">Kiểm tra lại trước khi gửi</h3>
-    <dl class="review"><dt>Tiêu đề</dt><dd><b>${esc(d.title)}</b></dd><dt>Lĩnh vực</dt><dd>${esc(cats.find((c) => c.id === +d.category_id)?.name)}</dd>
-      <dt>Hiện trạng</dt><dd>${esc(d.problem)}</dd><dt>Giải pháp</dt><dd>${esc(d.proposal)}</dd>
+    <dl class="review"><dt>Tiêu đề</dt><dd data-notr><b>${esc(d.title)}</b></dd><dt>Lĩnh vực</dt><dd>${esc(cats.find((c) => c.id === +d.category_id)?.name)}</dd>
+      <dt>Hiện trạng</dt><dd data-notr>${esc(d.problem)}</dd><dt>Giải pháp</dt><dd data-notr>${esc(d.proposal)}</dd>
       <dt>Lãng phí</dt><dd><div class="chips">${wasteTags(d.waste_types, 8) || '—'}</div></dd><dt>Công cụ</dt><dd>${toolTag(d.lean_tool) || '—'}</dd>
-      <dt>Ước tính</dt><dd>${d.estimated_saving ? money(d.estimated_saving) + '/năm' : '—'}</dd></dl>`;
+      <dt>Ước tính</dt><dd>${d.estimated_saving ? t('{v}/năm', { v: money(d.estimated_saving) }) : '—'}</dd></dl>`;
 
   const collect = () => { const fd = new FormData($('#wf')); for (const [key, v] of fd.entries()) if (key in d && key !== 'files') d[key] = v; };
   const bind = () => {
@@ -1799,7 +2421,7 @@ async function viewNew(_, params) {
       if (!navigator.onLine) { await queue(item); toast('Đang ngoại tuyến. Đã lưu, sẽ tự gửi khi có mạng', 'wifiOff'); location.hash = '#/'; return; }
       try {
         const r = await api('/kaizens', { method: 'POST', form: toForm(item) });
-        toast(submit ? `Đã gửi ${r.code}. Tổ trưởng sẽ phản hồi trong 48 giờ` : `Đã lưu nháp ${r.code}`); location.hash = '#/kaizen/' + r.id;
+        toast(submit ? t('Đã gửi {code}. Tổ trưởng sẽ phản hồi trong 48 giờ', { code: r.code }) : t('Đã lưu nháp {code}', { code: r.code })); location.hash = '#/kaizen/' + r.id;
       } catch (err) {
         if (!err.status || err.status >= 500) { await queue(item); toast('Mất kết nối. Đã lưu ngoại tuyến', 'wifiOff'); location.hash = '#/'; }
         else { toast(err.message, 'alert'); $$('.wfoot button').forEach((b) => (b.disabled = false)); }
@@ -1821,12 +2443,12 @@ async function viewAnalytics(_, params) {
   const bs = Object.fromEntries(s.by_status.map((x) => [x.status, +x.total]));
   const g = (...k) => k.reduce((a, x) => a + (bs[x] || 0), 0);
   const funnel = [
-    { label: 'Đã gửi', value: s.total_ideas },
-    { label: 'Qua sơ duyệt', value: g('QUICK_WIN', 'PENDING_IE', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
-    { label: 'Đã triển khai', value: g('QUICK_WIN', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
-    { label: 'Hoàn thành', value: g('COMPLETED') },
+    { label: t('Đã gửi'), value: s.total_ideas },
+    { label: t('Qua sơ duyệt'), value: g('QUICK_WIN', 'PENDING_IE', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
+    { label: t('Đã triển khai'), value: g('QUICK_WIN', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
+    { label: t('Hoàn thành'), value: g('COMPLETED') },
   ];
-  const months = trend.map((t) => ({ label: 'Tháng ' + t.month.slice(5) + '/' + t.month.slice(0, 4), short: 'T' + +t.month.slice(5), submitted: +t.submitted, completed: +t.completed }));
+  const months = trend.map((x) => ({ label: t('Tháng {m}/{y}', { m: x.month.slice(5), y: x.month.slice(0, 4) }), short: t('T{m}', { m: +x.month.slice(5) }), submitted: +x.submitted, completed: +x.completed }));
   const net = s.verified_saving - s.verified_investment;
   const chip = (p, l) => `<a class="chip ${period === p ? 'on' : ''}" href="#/analytics?p=${p}">${l}</a>`;
 
@@ -1834,27 +2456,27 @@ async function viewAnalytics(_, params) {
     <div class="page-h"><div class="grow"><h1>Phân tích & ROI</h1><p>Hiệu quả chương trình Kaizen: số lượng, tốc độ, lãng phí được loại bỏ và giá trị tài chính đã xác thực.</p></div>
       <div class="chips">${chip('30', '30 ngày')}${chip('90', 'Quý')}${chip('365', '12 tháng')}${chip('all', 'Tất cả')}</div></div>
     <section class="grid g4" style="margin-bottom:16px">
-      ${kpi('bulb', 'Sáng kiến đã gửi', s.total_ideas, `${s.participants} người tham gia`)}
-      ${kpi('check', 'Hoàn thành', s.completed, `${s.quick_wins} Quick Win · ${s.major_projects} dự án`)}
-      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(s.verified_saving), `Đầu tư ${moneyShort(s.verified_investment)}`)}
+      ${kpi('bulb', 'Sáng kiến đã gửi', s.total_ideas, t('{n} người tham gia', { n: s.participants }))}
+      ${kpi('check', 'Hoàn thành', s.completed, t('{q} Quick Win · {m} dự án', { q: s.quick_wins, m: s.major_projects }))}
+      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(s.verified_saving), t('Đầu tư {v}', { v: moneyShort(s.verified_investment) }))}
       ${kpi('trend', 'Lợi ích ròng năm đầu', moneyShort(net), s.verified_investment ? `ROI ${Math.round(net / s.verified_investment * 100)}%` : 'Chưa có dự án xác thực')}
     </section>
     <section class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);margin-bottom:16px" id="row1">
       <div class="card"><div class="card-h"><h2>Đề xuất và hoàn thành theo tháng</h2><div class="legend"><span><i class="sw s1"></i>Đã gửi</span><span><i class="sw s2"></i>Hoàn thành</span></div></div>
-        <div class="card-b">${columnChart(months, [{ key: 'submitted', label: 'Đã gửi', cls: 's1' }, { key: 'completed', label: 'Hoàn thành', cls: 's2' }])}
+        <div class="card-b">${columnChart(months, { aria: t('Đề xuất và hoàn thành theo tháng') }, [{ key: 'submitted', label: t('Đã gửi'), cls: 's1' }, { key: 'completed', label: t('Hoàn thành'), cls: 's2' }])}
         <details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">Xem dạng bảng</summary><div class="table-wrap"><table><tr><th>Tháng</th><th class="r">Đã gửi</th><th class="r">Hoàn thành</th></tr>${months.map((m2) => `<tr><td>${m2.label}</td><td class="r">${m2.submitted}</td><td class="r">${m2.completed}</td></tr>`).join('')}</table></div></details></div></div>
       <div class="card"><div class="card-h"><h2>Tỷ lệ hoàn thành</h2></div><div class="card-b stack" style="align-items:center;text-align:center">
-        ${ring(s.completion_rate, 132)}<p class="small muted">Tỷ lệ sáng kiến được duyệt đã hoàn thành.<br>Thời gian sơ duyệt trung bình <b style="color:var(--ink)">${s.avg_leader_response_hours} giờ</b> (mục tiêu 48 giờ).</p></div></div>
+        ${ring(s.completion_rate, 132)}<p class="small muted">Tỷ lệ sáng kiến được duyệt đã hoàn thành.<br><span>Thời gian sơ duyệt trung bình</span> <b style="color:var(--ink)">${t('{h} giờ', { h: s.avg_leader_response_hours })}</b> <span>(mục tiêu 48 giờ).</span></p></div></div>
     </section>
     <section class="grid g2" style="margin-bottom:16px">
       <div class="card"><div class="card-h"><h2>Lãng phí được tấn công</h2><span class="small muted">Số sáng kiến</span></div><div class="card-b">
-        ${wastes.length ? barList(wastes.map((w) => ({ ...w, label: WASTE[w.waste]?.vi || w.waste, value: +w.total })), { icon: (r) => icon(WASTE[r.waste]?.icon || 'alert', 14), cls: 'seq' }) : empty('chart', 'Chưa có dữ liệu', 'Hãy gắn loại lãng phí khi gửi đề xuất.')}</div></div>
+        ${wastes.length ? barList(wastes.map((w) => ({ ...w, label: t(WASTE[w.waste]?.vi || w.waste), value: +w.total })), { icon: (r) => icon(WASTE[r.waste]?.icon || 'alert', 14), cls: 'seq' }) : empty('chart', 'Chưa có dữ liệu', 'Hãy gắn loại lãng phí khi gửi đề xuất.')}</div></div>
       <div class="card"><div class="card-h"><h2>Phễu chuyển đổi</h2><span class="small muted">Từ ý tưởng đến kết quả</span></div><div class="card-b">${barList(funnel, { cls: 's1' })}
-        <h3 style="margin:20px 0 10px">Theo lĩnh vực</h3>${barList(s.by_category.map((c) => ({ label: c.category, value: +c.total })), { cls: 'seq' })}</div></div>
+        <h3 style="margin:20px 0 10px">Theo lĩnh vực</h3>${barList(s.by_category.map((c) => ({ label: t(c.category), value: +c.total })), { cls: 'seq' })}</div></div>
     </section>
     ${roi.length ? `<section class="card"><div class="card-h"><h2>ROI theo xưởng và tháng</h2><span class="small muted">Chỉ gồm dự án đã được Kế toán xác thực</span></div>
       <div class="table-wrap"><table><tr><th>Tháng</th><th>Xưởng</th><th class="r">Dự án</th><th class="r">Đầu tư</th><th class="r">Tiết kiệm / năm</th><th class="r">ROI</th><th class="r">Hoàn vốn</th></tr>
-      ${roi.map((x) => `<tr><td class="mono">${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="r">${x.projects}</td><td class="r">${money(x.investment)}</td><td class="r">${money(x.annual_saving)}</td><td class="r"><b style="color:var(--good)">${x.roi_percent ?? '—'}%</b></td><td class="r">${x.payback_months ?? '—'} tháng</td></tr>`).join('')}</table></div></section>` : ''}`;
+      ${roi.map((x) => `<tr><td class="mono">${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="r">${x.projects}</td><td class="r">${money(x.investment)}</td><td class="r">${money(x.annual_saving)}</td><td class="r"><b style="color:var(--good)">${x.roi_percent ?? '—'}%</b></td><td class="r">${x.payback_months != null ? t('{n} tháng', { n: x.payback_months }) : '—'}</td></tr>`).join('')}</table></div></section>` : ''}`;
   if (innerWidth < 980) $('#row1').style.gridTemplateColumns = 'minmax(0,1fr)';
 }
 
@@ -1863,20 +2485,20 @@ async function viewLeaderboard() {
   const [rows, m] = await Promise.all([api('/reports/leaderboard'), api('/auth/me')]);
   const mb = beltOf(m.total_points || 0), top = rows.slice(0, 3);
   const pod = (r, i) => { if (!r) return '<div></div>'; const b = beltOf(r.points); return `<div class="card pod ${i === 0 ? 'first' : ''}">
-    <span class="rank">HẠNG ${i + 1}</span>${beltSvg(b, i === 0 ? 72 : 56)}<b>${esc(r.full_name)}</b><span class="small muted">${esc(r.workshop || ROLES[r.role])}</span>
-    <span class="pts">${r.points}<small class="muted" style="font-size:13px"> điểm</small></span><span class="small muted">${b.vi} · ${r.completed}/${r.ideas} hoàn thành</span></div>`; };
+    <span class="rank">${t('HẠNG {n}', { n: i + 1 })}</span>${beltSvg(b, i === 0 ? 72 : 56)}<b data-notr>${esc(r.full_name)}</b><span class="small muted">${esc(r.workshop || t(ROLES[r.role]))}</span>
+    <span class="pts">${r.points}<small class="muted" style="font-size:13px"> điểm</small></span><span class="small muted">${t('{belt} · {c}/{n} hoàn thành', { belt: t(b.vi), c: r.completed, n: r.ideas })}</span></div>`; };
   app.innerHTML = `
     <div class="page-h"><div class="grow"><h1>Bảng vàng Kaizen</h1><p>Vinh danh những người tạo ra cải tiến thực sự. Điểm chỉ được cộng khi sáng kiến hoàn thành và được xác nhận.</p></div></div>
     <section class="podium" style="margin-bottom:24px">${pod(top[1], 1)}${pod(top[0], 0)}${pod(top[2], 2)}</section>
     <section class="card" style="margin-bottom:28px"><div class="card-h"><h2>Xếp hạng</h2></div><div class="table-wrap"><table>
       <tr><th>#</th><th>Nhân viên</th><th>Cấp đai</th><th class="r">Sáng kiến</th><th class="r">Hoàn thành</th><th class="r">Thưởng</th><th class="r">Điểm</th></tr>
       ${rows.map((r, i) => { const b = beltOf(r.points); return `<tr class="${r.user_id === m.id ? 'me' : ''}"><td class="mono">${i + 1}</td>
-        <td><div class="row" style="flex-wrap:nowrap">${avatar(r.full_name)}<span><b>${esc(r.full_name)}</b><br><span class="small muted">${esc(r.workshop || ROLES[r.role])}</span></span></div></td>
-        <td><div class="row" style="flex-wrap:nowrap;gap:6px">${beltSvg(b, 26)}<span class="small">${b.vi}</span></div></td>
+        <td><div class="row" style="flex-wrap:nowrap">${avatar(r.full_name)}<span><b data-notr>${esc(r.full_name)}</b><br><span class="small muted">${esc(r.workshop || t(ROLES[r.role]))}</span></span></div></td>
+        <td><div class="row" style="flex-wrap:nowrap;gap:6px">${beltSvg(b, 26)}<span class="small">${t(b.vi)}</span></div></td>
         <td class="r">${r.ideas}</td><td class="r">${r.completed}</td><td class="r">${r.amount ? money(r.amount) : '—'}</td><td class="r"><b>${r.points}</b></td></tr>`; }).join('')}</table></div></section>
     <section><div class="eyebrow">Lộ trình phát triển</div><h2 style="margin:4px 0 4px;font-size:22px">5 cấp đai Kaizen</h2><p class="muted" style="margin-bottom:16px">Mô phỏng hệ thống đai Lean Six Sigma: điểm cải tiến tích lũy quyết định cấp đai của bạn.</p>
       <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep ${i === mb.index ? 'me' : ''}"><div class="row">${beltSvg(b, 48)}<span class="grow"></span>${i === mb.index ? '<span class="pill t-good">Bạn ở đây</span>' : ''}</div>
-        <span class="lvl">Cấp ${i + 1} · từ ${b.min} điểm</span><h3>${b.vi}</h3><p>${b.desc}</p><span class="small" style="font-weight:700;color:var(--brand)">${b.step}</span></div>`).join('')}</div></section>`;
+        <span class="lvl">${t('Cấp {n} · từ {p} điểm', { n: i + 1, p: b.min })}</span><h3>${t(b.vi)}</h3><p>${t(b.desc)}</p><span class="small" style="font-weight:700;color:var(--brand)">${t(b.step)}</span></div>`).join('')}</div></section>`;
 }
 
 // ============ academy ============
@@ -1887,13 +2509,13 @@ function viewAcademy() {
     <section class="acad-sec" id="principles"><div class="eyebrow">Tư duy</div><h2>10 nguyên tắc Kaizen xây dựng hệ thống tốt hơn</h2><p>Kaizen (改善) nghĩa là "thay đổi để tốt hơn". Đây là những nguyên tắc giúp cải tiến trở thành thói quen hằng ngày.</p>
       <div class="principles">${PRINCIPLES.map(([ic, t, d2], i) => `<div class="card prin"><span class="p-n">${String(i + 1).padStart(2, '0')}</span><span class="p-ic">${icon(ic, 22)}</span><h3>${t}</h3><p>${d2}</p></div>`).join('')}</div></section>
     <section class="acad-sec" id="wastes"><div class="eyebrow">Nhận diện</div><h2>8 lãng phí trong Lean (DOWNTIME)</h2><p>Mọi hoạt động không tạo giá trị cho khách hàng là lãng phí. Tập trung vào giá trị, loại bỏ phần không tạo giá trị.</p>
-      <div class="wastes">${WASTES.map((w) => `<div class="card waste"><div class="w-h"><span class="w-ic">${icon(w.icon, 22)}</span><div><b>${w.vi}</b><span>${w.en}</span></div></div><p class="small">${w.desc}</p>
-        <p class="ex"><b>Ví dụ:</b> ${w.example}</p><a class="small" style="font-weight:700" href="#/new?waste=${w.code}">Đề xuất loại bỏ ${icon('arrowR', 14)}</a></div>`).join('')}</div></section>
+      <div class="wastes">${WASTES.map((w) => `<div class="card waste"><div class="w-h"><span class="w-ic">${icon(w.icon, 22)}</span><div><b>${t(w.vi)}</b><span>${w.en}</span></div></div><p class="small">${w.desc}</p>
+        <p class="ex"><b>Ví dụ:</b> ${t(w.example)}</p><a class="small" style="font-weight:700" href="#/new?waste=${w.code}">Đề xuất loại bỏ ${icon('arrowR', 14)}</a></div>`).join('')}</div></section>
     <section class="acad-sec" id="tools"><div class="eyebrow">Phương pháp</div><h2>Công cụ Lean tại nơi làm việc</h2><p>Công cụ thông minh hơn, nơi làm việc tốt hơn, cải tiến liên tục.</p>
       <div class="tools">${GEMBA_TOOLS.map(([ic, t, tag, d2]) => `<div class="card tool"><div class="t-h"><span class="t-ic">${icon(ic, 22)}</span><div><span>${tag}</span><b>${t}</b></div></div><p class="small">${d2}</p></div>`).join('')}
         ${TOOLS.filter((t) => t.code !== 'OTHER').map((t) => `<div class="card tool"><div class="t-h"><span class="t-ic">${icon(t.icon, 22)}</span><div><span>${t.tag}</span><b>${t.vi}</b></div></div><p class="small">${t.desc}</p><ul>${t.points.map((p) => `<li>${p}</li>`).join('')}</ul></div>`).join('')}</div></section>
     <section class="acad-sec" id="belts"><div class="eyebrow">Phát triển</div><h2>Hành trình đai Kaizen</h2><p>Học nền tảng → Hỗ trợ quy trình → Thực hành & cải tiến → Dẫn dắt & kèm cặp → Chiến lược & chuyển đổi.</p>
-      <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep">${beltSvg(b, 48)}<span class="lvl">Bước ${i + 1}</span><h3>${b.step}</h3><p>${b.vi}: ${b.desc}</p></div>`).join('')}</div></section>
+      <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep">${beltSvg(b, 48)}<span class="lvl">${t('Bước {n}', { n: i + 1 })}</span><h3>${t(b.step)}</h3><p>${t(b.vi)}: ${t(b.desc)}</p></div>`).join('')}</div></section>
     <div class="card motto"><b>Thay đổi nhỏ hôm nay. Hệ thống mạnh hơn ngày mai.</b><span>Tiếp tục cải tiến, tiếp tục phát triển.</span><p style="margin-top:14px"><a class="btn" href="#/new">${icon('camera', 18)}Đề xuất cải tiến</a></p></div>`;
   $$('[data-jump]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); document.getElementById(a.dataset.jump).scrollIntoView({ behavior: 'smooth' }); }));
 }
@@ -1907,13 +2529,13 @@ async function viewAdmin() {
   app.innerHTML = `
     <div class="page-h"><div class="grow"><h1>Quản trị hệ thống</h1><p>Người dùng, phân quyền và mã QR cho từng dây chuyền.</p></div></div>
     <section class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);margin-bottom:16px" id="adm1">
-      <div class="card"><div class="card-h"><h2>Người dùng</h2><span class="muted small">${users.length} tài khoản</span></div><div class="table-wrap"><table>
+      <div class="card"><div class="card-h"><h2>Người dùng</h2><span class="muted small">${t('{n} tài khoản', { n: users.length })}</span></div><div class="table-wrap"><table>
         <tr><th>Mã</th><th>Họ tên</th><th>Vai trò</th><th>Xưởng</th><th>Trạng thái</th></tr>
-        ${users.map((x) => `<tr><td class="mono">${esc(x.employee_code)}</td><td>${esc(x.full_name)}</td><td>${esc(ROLES[x.role] || x.role)}</td><td>${esc(ws[x.workshop_id]?.name || '—')}</td><td>${x.is_active === false ? '<span class="pill t-bad">Khóa</span>' : '<span class="pill t-good">Hoạt động</span>'}</td></tr>`).join('')}</table></div></div>
+        ${users.map((x) => `<tr><td class="mono">${esc(x.employee_code)}</td><td data-notr>${esc(x.full_name)}</td><td>${esc(t(ROLES[x.role] || x.role))}</td><td>${esc(ws[x.workshop_id]?.name || '—')}</td><td>${x.is_active === false ? '<span class="pill t-bad">Khóa</span>' : '<span class="pill t-good">Hoạt động</span>'}</td></tr>`).join('')}</table></div></div>
       <form class="card pad stack" id="nu" style="gap:10px"><h2>Thêm người dùng</h2>
         <div class="field"><label class="f" for="nu-code">Mã nhân viên</label><input id="nu-code" name="employee_code" required></div>
         <div class="field"><label class="f" for="nu-name">Họ tên</label><input id="nu-name" name="full_name" required></div>
-        <div class="field"><label class="f" for="nu-role">Vai trò</label><select id="nu-role" name="role">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div class="field"><label class="f" for="nu-role">Vai trò</label><select id="nu-role" name="role">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}">${t(v)}</option>`).join('')}</select></div>
         <div class="field"><label class="f" for="nu-ws">Xưởng</label><select id="nu-ws" name="workshop_id"><option value="">—</option>${master.workshops.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select></div>
         <div class="field"><label class="f" for="nu-pw">Mật khẩu ban đầu</label><input id="nu-pw" name="password" type="text" minlength="6" required value="123456"></div>
         <button class="btn">${icon('plus', 16)}Tạo tài khoản</button></form>
@@ -1928,7 +2550,7 @@ async function viewAdmin() {
   $('#nu').onsubmit = async (e) => {
     e.preventDefault(); const v = Object.fromEntries(new FormData(e.target));
     v.workshop_id = v.workshop_id ? +v.workshop_id : null; v.factory_id = master.factories[0]?.id ?? null;
-    try { await api('/admin/users', { method: 'POST', body: v }); toast('Đã tạo tài khoản ' + v.employee_code); viewAdmin(); } catch (err) { toast(err.message, 'alert'); }
+    try { await api('/admin/users', { method: 'POST', body: v }); toast(t('Đã tạo tài khoản {code}', { code: v.employee_code })); viewAdmin(); } catch (err) { toast(err.message, 'alert'); }
   };
   $('#nl').onsubmit = async (e) => {
     e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); v.parent_id = +v.parent_id;
@@ -1942,10 +2564,11 @@ async function viewAdmin() {
 
 // ============ boot ============
 if (!DEMO && 'serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+startAutoTranslate();
 updateNet();
 render();
-sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh'));
-setInterval(() => sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh')), 30000);
+sync(synced);
+setInterval(() => sync(synced), 30000);
 
 </script>
 </body>

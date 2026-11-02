@@ -29,7 +29,7 @@ Hệ thống quản lý Kaizen & Sáng kiến cải tiến nhà máy — triển
 | Học viện Lean | 10 nguyên tắc Kaizen, 8 lãng phí (DOWNTIME), công cụ Gemba / 3M / 5S / Poka-Yoke / Kanban / Jidoka / SMED / TPM…, lộ trình đai |
 | Quản trị | Người dùng, dây chuyền và liên kết QR |
 
-Giao diện có chế độ sáng/tối, tối ưu cho điện thoại (thanh điều hướng dưới, nút chụp ảnh ở giữa) và máy tính.
+Giao diện hỗ trợ **4 ngôn ngữ**: Tiếng Việt, English, 中文, Bahasa Indonesia (chọn ở thanh trên cùng hoặc màn hình đăng nhập; mặc định theo ngôn ngữ trình duyệt). Có chế độ sáng/tối, tối ưu cho điện thoại (thanh điều hướng dưới, nút chụp ảnh ở giữa) và máy tính.
 
 ## Bản demo trực tuyến
 
@@ -38,6 +38,13 @@ Bản demo chạy hoàn toàn trong trình duyệt (mock backend `backend/web/js
 - Build: `python3 scripts/build-demo.py` → `demo/index.html` (một file duy nhất, mở trực tiếp được).
 - GitHub Pages: workflow `.github/workflows/pages.yml` tự deploy mỗi lần push lên `main`
   (bật một lần: **Settings → Pages → Source: GitHub Actions**). Địa chỉ: [https://thinhstudio.github.io/KaizenSystem/](https://thinhstudio.github.io/KaizenSystem/).
+
+## Đa ngôn ngữ (i18n)
+
+- Toàn bộ chuỗi giao diện nằm trong `backend/web/js/i18n.js`, khóa là câu tiếng Việt gốc, giá trị là `[English, 中文, Indonesia]`.
+- Chuỗi tĩnh được dịch tự động khi hiển thị; chuỗi có số liệu dùng `t('Còn {n} điểm…', { n })`.
+- Nội dung người dùng nhập (tiêu đề, mô tả, bình luận, tên người, tên xưởng) giữ nguyên, được đánh dấu `data-notr`.
+- Thêm ngôn ngữ mới: thêm một mục vào `LANGS` và một cột vào từng dòng của từ điển.
 
 ## Chạy nhanh (Docker)
 

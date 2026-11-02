@@ -3,33 +3,36 @@ import { resetDemo } from './mock.js';
 import { queue, pending, sync, toForm } from './offline.js';
 import { icon, WASTES, WASTE, TOOLS, TOOL, PRINCIPLES, GEMBA_TOOLS, BELTS, beltOf, beltSvg, STATUS, ROLES } from './lean.js';
 import { columnChart, barList, ring, spark } from './charts.js';
+import { t, LANGS, getLang, setLang, locale, startAutoTranslate } from './i18n.js';
 
 // ============ helpers ============
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const app = $('#app');
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const nf = new Intl.NumberFormat('vi-VN');
+const nf = { format: (v) => new Intl.NumberFormat(locale()).format(v) };
 const money = (v) => nf.format(Math.round(v || 0)) + ' ₫';
+const UNITS = { vi: ['tỷ', 'tr'], en: ['B', 'M'], zh: ['十亿', '百万'], id: ['M', 'jt'] };
 const moneyShort = (v) => {
   v = +v || 0;
-  if (Math.abs(v) >= 1e9) return (v / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ';
-  if (Math.abs(v) >= 1e6) return (v / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tr';
+  const u = UNITS[getLang()];
+  if (Math.abs(v) >= 1e9) return (v / 1e9).toLocaleString(locale(), { maximumFractionDigits: 2 }) + ' ' + u[0];
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toLocaleString(locale(), { maximumFractionDigits: 1 }) + ' ' + u[1];
   return nf.format(Math.round(v)) + ' ₫';
 };
-const dt = (v) => (v ? new Date(v).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—');
-const dtt = (v) => (v ? new Date(v).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
+const dt = (v) => (v ? new Date(v).toLocaleDateString(locale(), { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—');
+const dtt = (v) => (v ? new Date(v).toLocaleString(locale(), { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
 function ago(v) {
   if (!v) return '';
   const s = (Date.now() - new Date(v)) / 1000;
-  if (s < 60) return 'vừa xong';
-  if (s < 3600) return Math.floor(s / 60) + ' phút trước';
-  if (s < 86400) return Math.floor(s / 3600) + ' giờ trước';
-  if (s < 86400 * 30) return Math.floor(s / 86400) + ' ngày trước';
+  if (s < 60) return t('vừa xong');
+  if (s < 3600) return t('{n} phút trước', { n: Math.floor(s / 60) });
+  if (s < 86400) return t('{n} giờ trước', { n: Math.floor(s / 3600) });
+  if (s < 86400 * 30) return t('{n} ngày trước', { n: Math.floor(s / 86400) });
   return dt(v);
 }
 const initials = (n) => String(n || '?').trim().split(/\s+/).slice(-2).map((w) => w[0]).join('').toUpperCase();
-const avatar = (n, cls = '') => `<span class="avatar ${cls}" aria-hidden="true">${esc(initials(n))}</span>`;
+const avatar = (n, cls = '') => `<span class="avatar ${cls}" aria-hidden="true" data-notr>${esc(initials(n))}</span>`;
 const pill = (s) => `<span class="pill t-${(STATUS[s] || STATUS.DRAFT).tone}">${esc((STATUS[s] || { vi: s }).vi)}</span>`;
 const wasteTags = (list = [], max = 3) => (list || []).slice(0, max).map((w) => WASTE[w] ? `<span class="tag">${icon(WASTE[w].icon, 13)}${WASTE[w].vi}</span>` : '').join('')
   + ((list || []).length > max ? `<span class="tag">+${list.length - max}</span>` : '');
@@ -41,9 +44,9 @@ const isApprover = () => ['LEADER', 'IE', 'FINANCE', 'ADMIN'].includes(role());
 const empty = (ic, title, text, cta = '') => `<div class="empty">${icon(ic, 34)}<h3>${title}</h3><p>${text}</p>${cta ? `<p style="margin-top:14px">${cta}</p>` : ''}</div>`;
 
 function toast(msg, ic = 'check') {
-  const t = $('#toast');
-  t.innerHTML = icon(ic, 18) + esc(msg); t.hidden = false;
-  clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3200);
+  const el = $('#toast');
+  el.innerHTML = icon(ic, 18) + esc(t(msg)); el.hidden = false;
+  clearTimeout(toast.tm); toast.tm = setTimeout(() => (el.hidden = true), 3200);
 }
 
 // chart tooltips: any element with data-tip
@@ -75,21 +78,29 @@ function renderShell(route) {
       return vis.length ? `<div class="nav-group">${g}</div>` + vis.map(([k, ic, label]) => `
         <a class="nav-link ${route === k ? 'active' : ''}" href="#/${k}">${icon(ic, 19)}<span>${label}</span>${k === 'approvals' && pendingCount ? `<span class="count">${pendingCount}</span>` : ''}</a>`).join('') : '';
     }).join('')}
-    <div class="side-foot">${beltSvg(b, 36)}<div class="who"><b>${esc(u.name)}</b><span>${esc(ROLES[u.role] || u.role)} · ${b.vi}</span></div>
+    <div class="side-foot">${beltSvg(b, 36)}<div class="who"><b data-notr>${esc(u.name)}</b><span>${esc(t(ROLES[u.role] || u.role))} · ${t(b.vi)}</span></div>
       <button class="icon-btn" id="logout" title="Đăng xuất" aria-label="Đăng xuất">${icon('logout', 18)}</button></div>`;
   $('#crumb').textContent = TITLES[route] ?? '';
   $('#menu').innerHTML = icon('menu', 22);
   $('#top-new').innerHTML = icon('plus', 18) + 'Đề xuất cải tiến';
   $('#demo-tag').innerHTML = DEMO ? '<span class="demo-tag">DEMO</span>' : '';
+  $('#lang').innerHTML = langSelect('lang-top');
   const tab = (k, ic, label) => `<a href="#/${k}" class="${route === k ? 'active' : ''}">${icon(ic, 22)}${label}</a>`;
   $('#tabbar').innerHTML = tab('', 'home', 'Tổng quan') + tab('ideas', 'bulb', 'Sáng kiến')
     + `<a href="#/new" aria-label="Đề xuất cải tiến"><span class="fab">${icon('camera', 24)}</span></a>`
-    + (isApprover() ? tab('approvals', 'approve', pendingCount ? `Duyệt (${pendingCount})` : 'Duyệt') : tab('leaderboard', 'trophy', 'Bảng vàng'))
+    + (isApprover() ? tab('approvals', 'approve', pendingCount ? t('Duyệt ({n})', { n: pendingCount }) : 'Duyệt') : tab('leaderboard', 'trophy', 'Bảng vàng'))
     + `<button id="more">${icon('menu', 22)}Thêm</button>`;
   $('#logout').onclick = () => { session.clear(); location.hash = '#/login'; };
   $('#more').onclick = $('#menu').onclick = () => document.body.classList.add('drawer');
   $('#scrim').onclick = () => document.body.classList.remove('drawer');
 }
+
+function langSelect(id) {
+  return `<label class="lang" data-short="${LANGS.find((l) => l.code === getLang()).short}" title="${t('Ngôn ngữ')}">${icon('globe', 16)}<select id="${id}" aria-label="${t('Ngôn ngữ')}" data-notr>${LANGS.map((l) => `<option value="${l.code}" ${l.code === getLang() ? 'selected' : ''}>${l.short} · ${l.label}</option>`).join('')}</select></label>`;
+}
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'lang-top' || e.target.id === 'lang-login') { setLang(e.target.value); updateNet(); render(); }
+});
 
 async function refreshCounters() {
   try {
@@ -103,7 +114,8 @@ function updateNet() {
   n.classList.toggle('off', !navigator.onLine);
   n.innerHTML = `<span class="net-txt">${navigator.onLine ? 'Trực tuyến' : 'Ngoại tuyến'}</span>`;
 }
-window.addEventListener('online', () => { updateNet(); sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh')); });
+const synced = (k) => toast(t('Đã đồng bộ {n} sáng kiến', { n: k }), 'refresh');
+window.addEventListener('online', () => { updateNet(); sync(synced); });
 window.addEventListener('offline', updateNet);
 
 // ============ router ============
@@ -149,7 +161,7 @@ function viewLogin() {
       <p class="small" style="color:var(--side-muted)">Nhỏ hôm nay · Mạnh ngày mai</p>
     </section>
     <section class="login-form"><div class="box">
-      <div><h1>Đăng nhập</h1><p class="muted">Dùng mã nhân viên do quản trị cấp.</p></div>
+      <div class="row" style="align-items:flex-start"><div class="grow"><h1>Đăng nhập</h1><p class="muted">Dùng mã nhân viên do quản trị cấp.</p></div>${langSelect('lang-login')}</div>
       <form id="lf" class="stack">
         <div class="field"><label class="f" for="lf-code">Mã nhân viên</label><input id="lf-code" name="employee_code" required autocomplete="username" placeholder="VD: CN001"></div>
         <div class="field"><label class="f" for="lf-pw">Mật khẩu</label><input id="lf-pw" name="password" type="password" required autocomplete="current-password"></div>
@@ -157,7 +169,7 @@ function viewLogin() {
       </form>
       ${DEMO ? `<div class="stack" style="gap:10px"><div class="eyebrow">Bản demo · chọn vai trò để vào nhanh</div>
         <div class="quick">${demoUsers.map(([c, l, d]) => `<button data-quick="${c}">${avatar(l)}<span><b>${l}</b><span>${d}</span></span></button>`).join('')}</div>
-        <p class="small muted">Dữ liệu demo chỉ lưu trong trình duyệt của bạn. <button class="linkbtn" id="reset">Khôi phục dữ liệu mẫu</button></p></div>` : ''}
+        <p class="small muted"><span>Dữ liệu demo chỉ lưu trong trình duyệt của bạn.</span> <button class="linkbtn" id="reset">Khôi phục dữ liệu mẫu</button></p></div>` : ''}
     </div></section></div>`;
   const doLogin = async (fd) => {
     try {
@@ -190,39 +202,39 @@ async function viewHome() {
 
   const todos = [
     ...outbox.map((o) => ({ ic: 'wifiOff', cls: 'info', t: o.fields.title, s: 'Đang chờ có mạng để đồng bộ', href: '#/ideas' })),
-    ...pend.map((a) => ({ ic: 'approve', t: a.title, s: `Chờ bạn duyệt cấp ${a.level === 'LEADER' ? 'Tổ trưởng' : a.level === 'IE' ? 'Ban Kaizen' : 'Kế toán'} · ${a.waiting_hours} giờ`, href: '#/approvals' })),
+    ...pend.map((a) => ({ ic: 'approve', t: a.title, s: t('Chờ bạn duyệt cấp {lvl} · {h} giờ', { lvl: t(a.level === 'LEADER' ? 'Tổ trưởng' : a.level === 'IE' ? 'Ban Kaizen' : 'Kế toán'), h: a.waiting_hours }), href: '#/approvals' })),
     ...mine.items.filter((i) => i.status === 'REVISION_REQUESTED').map((i) => ({ ic: 'alert', t: i.title, s: 'Người duyệt yêu cầu chỉnh sửa', href: '#/kaizen/' + i.id })),
     ...mine.items.filter((i) => i.status === 'DRAFT').map((i) => ({ ic: 'doc', cls: 'info', t: i.title, s: 'Bản nháp chưa gửi duyệt', href: '#/kaizen/' + i.id })),
     ...assigned.map((i) => ({ ic: i.status === 'QUICK_WIN' ? 'camera' : 'board', cls: 'info', t: i.title, s: i.status === 'QUICK_WIN' ? 'Thực hiện và tải ảnh After' : 'Cập nhật tiến độ Kanban', href: '#/kaizen/' + i.id })),
   ];
   const myDone = mine.items.filter((i) => i.status === 'COMPLETED').length;
   const mySaving = mine.items.filter((i) => i.status === 'COMPLETED').reduce((s, i) => s + (i.estimated_saving || 0), 0);
-  const scopeLabel = u.role === 'WORKER' ? 'của bạn' : u.role === 'LEADER' ? 'trong xưởng' : 'toàn nhà máy';
+  const scopeLabel = u.role === 'WORKER' ? 'Sáng kiến của bạn' : u.role === 'LEADER' ? 'Sáng kiến trong xưởng' : 'Sáng kiến toàn nhà máy';
   const feedIc = (k) => k === 'SUBMITTED' ? ['bulb', ''] : k === 'COMPLETED' ? ['trophy', 'good'] : k === 'COMMENT' ? ['message', ''] : k.endsWith('REJECTED') ? ['x', 'bad'] : k.endsWith('APPROVED') ? ['check', 'good'] : ['refresh', ''];
-  const feedTxt = (a) => ({ SUBMITTED: 'đã gửi sáng kiến', COMPLETED: 'đã hoàn thành sáng kiến', COMMENT: 'đã bình luận về' }[a.kind]
-    || `${{ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.kind.split('_')[0]] || ''} ${a.kind.endsWith('APPROVED') ? 'đã duyệt' : a.kind.endsWith('REJECTED') ? 'đã từ chối' : 'yêu cầu sửa'}`);
+  const feedTxt = (a) => t({ SUBMITTED: 'đã gửi sáng kiến', COMPLETED: 'đã hoàn thành sáng kiến', COMMENT: 'đã bình luận về' }[a.kind]
+    || (a.kind.endsWith('APPROVED') ? '{who} đã duyệt' : a.kind.endsWith('REJECTED') ? '{who} đã từ chối' : '{who} yêu cầu sửa'), { who: t({ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.kind.split('_')[0]] || '') });
 
   app.innerHTML = `
     <section class="hero">
       <div class="card hello">
-        <div class="date">${new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
-        <h1>${greet}, ${esc(u.name.split(' ').slice(-1)[0])}.</h1>
-        <div class="quote"><b>Nguyên tắc Kaizen hôm nay</b>${esc(pr[1])}. ${esc(pr[2])}</div>
+        <div class="date">${new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <h1>${t(greet)}, <span data-notr>${esc(u.name.split(' ').slice(-1)[0])}</span>.</h1>
+        <div class="quote"><b>Nguyên tắc Kaizen hôm nay</b>${esc(t(pr[1]))}. ${esc(t(pr[2]))}</div>
         <div class="row"><a class="btn" href="#/new">${icon('camera', 18)}Đề xuất cải tiến</a><a class="btn ghost" href="#/academy">${icon('book', 18)}Học viện Lean</a></div>
       </div>
       <div class="card beltcard">
-        <div class="b-head">${beltSvg(b, 64)}<div class="grow"><div class="eyebrow">Cấp đai Kaizen của bạn</div><div class="b-name">${b.vi}</div><div class="muted small">${m.total_points || 0} điểm cải tiến</div></div></div>
+        <div class="b-head">${beltSvg(b, 64)}<div class="grow"><div class="eyebrow">Cấp đai Kaizen của bạn</div><div class="b-name">${t(b.vi)}</div><div class="muted small">${t('{n} điểm cải tiến', { n: m.total_points || 0 })}</div></div></div>
         <div class="progress" role="progressbar" aria-valuenow="${b.pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${b.pct}%"></span></div>
-        <div class="small muted">${b.next ? `Còn <b>${b.toNext} điểm</b> để lên <b>${b.next.vi}</b>. Mỗi Quick Win +10, mỗi dự án lớn +50.` : 'Bạn đã đạt cấp đai cao nhất.'}</div>
-        <div class="ladder">${BELTS.map((x, i) => `<span style="background:${x.color};opacity:${i <= b.index ? 1 : .3}" title="${x.vi}"></span>`).join('')}</div>
+        <div class="small muted">${b.next ? t('Còn {n} điểm để lên {belt}. Mỗi Quick Win +10, mỗi dự án lớn +50.', { n: `<b>${b.toNext}</b>`, belt: `<b>${t(b.next.vi)}</b>` }) : t('Bạn đã đạt cấp đai cao nhất.')}</div>
+        <div class="ladder">${BELTS.map((x, i) => `<span style="background:${x.color};opacity:${i <= b.index ? 1 : .3}" title="${t(x.vi)}"></span>`).join('')}</div>
         <a href="#/leaderboard" class="small" style="font-weight:600">Xem Bảng vàng ${icon('chevR', 14)}</a>
       </div>
     </section>
 
     <section class="grid g4" style="margin-bottom:20px">
-      ${kpi('bulb', `Sáng kiến ${scopeLabel}`, sum.total_ideas, `${sum.participants} người tham gia`, spark(trend.map((t) => +t.submitted)))}
-      ${kpi('check', 'Đã hoàn thành', sum.completed, `Tỷ lệ hoàn thành ${sum.completion_rate}%`, spark(trend.map((t) => +t.completed)))}
-      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(sum.verified_saving), `Ước tính ${moneyShort(sum.estimated_saving)}/năm`)}
+      ${kpi('bulb', scopeLabel, sum.total_ideas, t('{n} người tham gia', { n: sum.participants }), spark(trend.map((x) => +x.submitted)))}
+      ${kpi('check', 'Đã hoàn thành', sum.completed, t('Tỷ lệ hoàn thành {n}%', { n: sum.completion_rate }), spark(trend.map((x) => +x.completed)))}
+      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(sum.verified_saving), t('Ước tính {v}/năm', { v: moneyShort(sum.estimated_saving) }))}
       ${kpi('clock', 'Thời gian sơ duyệt TB', `${sum.avg_leader_response_hours}<small> giờ</small>`, sum.avg_leader_response_hours <= 48 ? '<span style="color:var(--good);font-weight:700">Đạt mục tiêu dưới 48 giờ</span>' : '<span style="color:var(--bad);font-weight:700">Vượt mục tiêu 48 giờ</span>')}
     </section>
 
@@ -234,14 +246,14 @@ async function viewHome() {
     <section class="grid g2">
       <div class="card">
         <div class="card-h"><h2>Việc cần làm</h2><span class="pill ${todos.length ? 't-warn' : 't-good'}">${todos.length}</span></div>
-        ${todos.length ? todos.slice(0, 8).map((t) => `<a class="todo" href="${t.href}"><span class="t-ic ${t.cls || ''}">${icon(t.ic, 18)}</span><span class="t-main"><b>${esc(t.t)}</b><span>${esc(t.s)}</span></span>${icon('chevR', 16)}</a>`).join('')
+        ${todos.length ? todos.slice(0, 8).map((x) => `<a class="todo" href="${x.href}"><span class="t-ic ${x.cls || ''}">${icon(x.ic, 18)}</span><span class="t-main"><b data-notr>${esc(x.t)}</b><span>${esc(t(x.s))}</span></span>${icon('chevR', 16)}</a>`).join('')
           : empty('check', 'Không còn việc tồn', 'Bạn đã xử lý xong mọi việc. Hãy đi một vòng Gemba để tìm cơ hội cải tiến mới.')}
         <div class="card-b" style="border-top:1px solid var(--line-2)"><div class="row"><span class="grow small muted">Sáng kiến của tôi: <b style="color:var(--ink)">${mine.total}</b> · hoàn thành <b style="color:var(--ink)">${myDone}</b> · ước tính tiết kiệm <b style="color:var(--ink)">${moneyShort(mySaving)}</b></span><a class="small" style="font-weight:600" href="#/ideas?mine=true">Xem tất cả</a></div></div>
       </div>
       <div class="card">
         <div class="card-h"><h2>Hoạt động gần đây</h2></div>
         ${act.length ? `<ul class="feed">${act.slice(0, 8).map((a) => { const [ic, c] = feedIc(a.kind); return `<li><span class="f-ic ${c}">${icon(ic, 15)}</span>
-          <div class="f-txt"><b>${esc(a.actor)}</b> ${feedTxt(a)} <a href="#/kaizen/${a.idea_id}">${esc(a.title)}</a>${a.detail ? `<q>${esc(a.detail)}</q>` : ''}<time style="display:block">${ago(a.at)}</time></div></li>`; }).join('')}</ul>`
+          <div class="f-txt"><b data-notr>${esc(a.actor)}</b> ${feedTxt(a)} <a href="#/kaizen/${a.idea_id}" data-notr>${esc(a.title)}</a>${a.detail ? `<q data-notr>${esc(a.detail)}</q>` : ''}<time style="display:block">${ago(a.at)}</time></div></li>`; }).join('')}</ul>`
           : empty('clock', 'Chưa có hoạt động', 'Các sự kiện gửi, duyệt, bình luận sẽ hiển thị ở đây.')}
       </div>
     </section>`;
@@ -258,11 +270,11 @@ function ideaCard(k) {
   return `<a class="card idea" href="#/kaizen/${k.id}">
     <div class="thumb ${img ? '' : 'ph'}">${img ? `<img loading="lazy" src="${img}" alt="">` : icon(w && WASTE[w] ? WASTE[w].icon : 'bulb', 40)}${pill(k.status)}</div>
     <div class="i-body">
-      <div class="i-meta"><span class="mono">${esc(k.code)}</span> · ${esc(k.category)} · ${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</div>
-      <div class="i-title">${esc(k.title)}</div>
+      <div class="i-meta"><span class="mono">${esc(k.code)}</span> · ${esc(t(k.category))} · <span data-notr>${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</span></div>
+      <div class="i-title" data-notr>${esc(k.title)}</div>
       <div class="chips">${typeTag(k.kaizen_type)}${wasteTags(k.waste_types, 2)}</div>
     </div>
-    <div class="i-foot">${avatar(k.submitter)}<span class="grow" style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(k.submitter)}<br>${ago(k.submitted_at || k.created_at)}</span>
+    <div class="i-foot">${avatar(k.submitter)}<span class="grow" style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span data-notr>${esc(k.submitter)}</span><br>${ago(k.submitted_at || k.created_at)}</span>
       <span class="stat-ic">${icon('heart', 14)}${k.like_count || 0}</span><span class="stat-ic">${icon('message', 14)}${k.comment_count || 0}</span>
       ${k.estimated_saving ? `<span class="save">${moneyShort(k.estimated_saving)}</span>` : ''}</div></a>`;
 }
@@ -289,13 +301,13 @@ async function viewIdeas(_, params) {
     a.href = url; a.download = 'kaizen-export.csv'; a.click(); URL.revokeObjectURL(url);
   };
   const outbox = await pending().catch(() => []);
-  if (outbox.length) $('#out').innerHTML = `<div class="card pad" style="margin-bottom:16px;display:flex;gap:12px;align-items:center">${icon('wifiOff', 22)}<div><b>${outbox.length} sáng kiến đang chờ đồng bộ</b><div class="small muted">${outbox.map((o) => esc(o.fields.title)).join(' · ')}</div></div></div>`;
+  if (outbox.length) $('#out').innerHTML = `<div class="card pad" style="margin-bottom:16px;display:flex;gap:12px;align-items:center">${icon('wifiOff', 22)}<div><b>${t('{n} sáng kiến đang chờ đồng bộ', { n: outbox.length })}</b><div class="small muted" data-notr>${outbox.map((o) => esc(o.fields.title)).join(' · ')}</div></div></div>`;
 
   const load = async () => {
     const qs = new URLSearchParams({ page_size: 100 });
     Object.entries(st).forEach(([k, v]) => v && qs.set(k, v === true ? 'true' : v));
     const res = await api('/kaizens?' + qs);
-    $('#items').innerHTML = res.items.length ? `<p class="small muted" style="margin-bottom:10px">${res.total} sáng kiến</p><div class="ideas">${res.items.map(ideaCard).join('')}</div>`
+    $('#items').innerHTML = res.items.length ? `<p class="small muted" style="margin-bottom:10px">${t('{n} sáng kiến', { n: res.total })}</p><div class="ideas">${res.items.map(ideaCard).join('')}</div>`
       : `<div class="card">${empty('search', 'Không có sáng kiến phù hợp', 'Thử bỏ bớt bộ lọc, hoặc gửi đề xuất đầu tiên cho nhóm này.', '<a class="btn" href="#/new">Đề xuất cải tiến</a>')}</div>`;
   };
   let tmr;
@@ -315,8 +327,8 @@ async function viewBoard() {
   app.innerHTML = `<div class="page-h"><div class="grow"><h1>Bảng Kaizen</h1><p>Dòng chảy của mọi sáng kiến qua từng chặng phê duyệt. Cột dồn nhiều thẻ là nơi đang tắc nghẽn.</p></div></div>
     <div class="board-wrap"><div class="board">${lanes.map(([s, l, c]) => { const items = res.items.filter((i) => i.status === s); return `
       <section class="lane" style="--dot:${c}"><div class="lane-h">${l}<span class="n">${items.length}</span></div><div class="lane-b">
-        ${items.map((k) => `<a class="mini" href="#/kaizen/${k.id}"><span class="mono muted">${esc(k.code)}</span><b>${esc(k.title)}</b>
-          <div class="row">${avatar(k.submitter)}<span class="grow">${esc(k.submitter)}</span>${k.estimated_saving ? `<b style="margin:0;color:var(--good)">${moneyShort(k.estimated_saving)}</b>` : ''}</div>
+        ${items.map((k) => `<a class="mini" href="#/kaizen/${k.id}"><span class="mono muted">${esc(k.code)}</span><b data-notr>${esc(k.title)}</b>
+          <div class="row">${avatar(k.submitter)}<span class="grow" data-notr>${esc(k.submitter)}</span>${k.estimated_saving ? `<b style="margin:0;color:var(--good)">${moneyShort(k.estimated_saving)}</b>` : ''}</div>
           ${(k.waste_types || []).length ? `<div class="chips" style="margin-top:8px">${wasteTags(k.waste_types, 2)}</div>` : ''}</a>`).join('') || '<p class="small muted" style="padding:8px">Trống</p>'}
       </div></section>`; }).join('')}</div></div>`;
 }
@@ -326,15 +338,15 @@ async function viewApprovals() {
   const list = await api('/approvals/pending');
   const lvl = { LEADER: 'Sơ duyệt cấp Tổ', IE: 'Thẩm định Ban Kaizen', FINANCE: 'Thẩm định tài chính' };
   app.innerHTML = `<div class="page-h"><div class="grow"><h1>Phê duyệt</h1><p>Mục tiêu: phản hồi mọi sáng kiến trong vòng 48 giờ. Lý do là bắt buộc khi từ chối hoặc yêu cầu sửa.</p></div>
-      <span class="pill ${list.length ? 't-warn' : 't-good'}">${list.length} đang chờ</span></div>
+      <span class="pill ${list.length ? 't-warn' : 't-good'}">${t('{n} đang chờ', { n: list.length })}</span></div>
     <div class="stack">${list.map((a) => `
       <article class="card ap" data-ap="${a.approval_id}">
         ${a.thumb_id ? `<img class="ap-img" src="${fileUrl(a.thumb_id)}" alt="Ảnh hiện trường">` : `<div class="ap-img">${icon('image', 30)}</div>`}
         <div style="min-width:0">
-          <div class="row"><span class="tag type">${lvl[a.level]}</span><span class="sla ${a.waiting_hours > 48 ? 'late' : 'ok'}">${icon('clock', 14)}${a.waiting_hours} giờ${a.waiting_hours > 48 ? ' · quá hạn' : ''}</span><span class="grow"></span><span class="mono muted">${esc(a.code)}</span></div>
-          <h2 style="margin-top:6px"><a href="#/kaizen/${a.idea_id}" style="color:var(--ink)">${esc(a.title)}</a></h2>
-          <div class="small muted">${esc(a.submitter)} · ${esc(a.workshop)} · ${esc(a.category)}${a.estimated_saving ? ` · ước tính <b style="color:var(--good)">${money(a.estimated_saving)}</b>/năm` : ''}</div>
-          ${a.problem ? `<div class="ap-pair"><div><span class="eyebrow" style="color:var(--bad)">Hiện trạng</span><p>${esc(a.problem)}</p></div><div><span class="eyebrow" style="color:var(--good)">Đề xuất</span><p>${esc(a.proposal)}</p></div></div>` : ''}
+          <div class="row"><span class="tag type">${lvl[a.level]}</span><span class="sla ${a.waiting_hours > 48 ? 'late' : 'ok'}">${icon('clock', 14)}${t(a.waiting_hours > 48 ? '{h} giờ · quá hạn' : '{h} giờ', { h: a.waiting_hours })}</span><span class="grow"></span><span class="mono muted">${esc(a.code)}</span></div>
+          <h2 style="margin-top:6px" data-notr><a href="#/kaizen/${a.idea_id}" style="color:var(--ink)">${esc(a.title)}</a></h2>
+          <div class="small muted"><span data-notr>${esc(a.submitter)} · ${esc(a.workshop)}</span> · ${esc(t(a.category))}${a.estimated_saving ? ` · ${t('Ước tính {v}/năm', { v: `<b style="color:var(--good)">${money(a.estimated_saving)}</b>` })}` : ''}</div>
+          ${a.problem ? `<div class="ap-pair"><div><span class="eyebrow" style="color:var(--bad)">Hiện trạng</span><p data-notr>${esc(a.problem)}</p></div><div><span class="eyebrow" style="color:var(--good)">Đề xuất</span><p data-notr>${esc(a.proposal)}</p></div></div>` : ''}
           <div class="chips">${wasteTags(a.waste_types, 4)}${toolTag(a.lean_tool)}</div>
           <textarea placeholder="Ý kiến phản hồi cho người đề xuất (bắt buộc khi từ chối / yêu cầu sửa)" style="margin-top:12px;min-height:64px" aria-label="Ý kiến phản hồi"></textarea>
           ${a.level === 'FINANCE' ? `<div class="grid g2" style="margin-top:8px"><div class="field"><label class="f">Chi phí đầu tư thực tế (₫)</label><input data-k="investment_cost" type="number" min="0" step="1000"></div>
@@ -353,7 +365,7 @@ async function viewApprovals() {
     $$('[data-k]', card).forEach((i) => { if (i.value !== '') body[i.dataset.k] = +i.value; });
     try {
       const r = await api(`/approvals/${card.dataset.ap}/action`, { method: 'POST', body });
-      toast('Đã chuyển sang: ' + (STATUS[r.status]?.vi || r.status)); render();
+      toast(t('Đã chuyển sang: {s}', { s: t(STATUS[r.status]?.vi || r.status) })); render();
     } catch (e) { toast(e.message, 'alert'); }
   }));
 }
@@ -374,7 +386,7 @@ function lifecycle(k) {
   }
   return `<div class="card stepper" style="margin-bottom:20px">${steps.map((s, i) => {
     const c = i === fail ? 'fail' : i < cur ? 'done' : i === cur ? 'cur' : '';
-    return `<div class="step ${c}"><span class="dot">${icon(c === 'done' ? 'check' : c === 'fail' ? 'x' : s[2], 15)}</span>${i === fail ? 'Bị từ chối' : s[1]}</div>`;
+    return `<div class="step ${c}"><span class="dot">${icon(c === 'done' ? 'check' : c === 'fail' ? 'x' : s[2], 15)}</span>${t(i === fail ? 'Bị từ chối' : s[1])}</div>`;
   }).join('')}</div>`;
 }
 
@@ -389,36 +401,36 @@ async function viewDetail(id) {
   const f = k.financials;
   const imgs = (phase) => { const a = k.attachments.filter((x) => x.phase === phase); return a.length ? a.map((x) => x.content_type.startsWith('image/')
     ? `<a href="${fileUrl(x.id)}" target="_blank" rel="noopener"><img loading="lazy" src="${fileUrl(x.id)}" alt="${esc(x.file_name)}"></a>`
-    : `<a class="tag" href="${fileUrl(x.id)}" target="_blank" rel="noopener">${icon('doc', 13)}${esc(x.file_name)}</a>`).join('') : `<span class="none">Chưa có ảnh ${phase === 'AFTER' ? 'sau cải tiến' : 'hiện trạng'}</span>`; };
+    : `<a class="tag" href="${fileUrl(x.id)}" target="_blank" rel="noopener">${icon('doc', 13)}${esc(x.file_name)}</a>`).join('') : `<span class="none">${t(phase === 'AFTER' ? 'Chưa có ảnh sau cải tiến' : 'Chưa có ảnh hiện trạng')}</span>`; };
   const tasksBy = (s) => k.tasks.filter((t) => t.status === s);
 
   app.innerHTML = `
     <a class="back" href="#/ideas">${icon('chevL', 16)}Danh sách sáng kiến</a>
-    <div class="d-head"><div class="grow"><div class="row small muted" style="margin-bottom:6px"><span class="mono">${esc(k.code)}</span>·<span>${esc(k.category)}</span>·<span>${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</span></div>
-      <h1>${esc(k.title)}</h1><div class="chips" style="margin-top:10px">${pill(k.status)}${typeTag(k.kaizen_type)}${toolTag(k.lean_tool)}</div></div>
-      <button class="btn ghost like ${k.liked ? 'on' : ''}" id="like">${icon('heart', 18)}${k.like_count || 0} ủng hộ</button></div>
+    <div class="d-head"><div class="grow"><div class="row small muted" style="margin-bottom:6px"><span class="mono">${esc(k.code)}</span>·<span>${esc(t(k.category))}</span>·<span data-notr>${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</span></div>
+      <h1 data-notr>${esc(k.title)}</h1><div class="chips" style="margin-top:10px">${pill(k.status)}${typeTag(k.kaizen_type)}${toolTag(k.lean_tool)}</div></div>
+      <button class="btn ghost like ${k.liked ? 'on' : ''}" id="like">${icon('heart', 18)}${t('{n} ủng hộ', { n: k.like_count || 0 })}</button></div>
     ${lifecycle(k)}
     <div class="main-side">
       <div class="stack">
         <section class="card"><div class="compare">
-          <div class="before"><span class="lbl">${icon('alert', 14)}Trước cải tiến · Hiện trạng</span><p>${esc(k.problem)}</p><div class="gallery">${imgs('BEFORE')}</div></div>
-          <div class="after"><span class="lbl">${icon('sparkles', 14)}Sau cải tiến · Giải pháp</span><p>${esc(k.proposal)}</p><div class="gallery">${imgs('AFTER')}</div>
+          <div class="before"><span class="lbl">${icon('alert', 14)}Trước cải tiến · Hiện trạng</span><p data-notr>${esc(k.problem)}</p><div class="gallery">${imgs('BEFORE')}</div></div>
+          <div class="after"><span class="lbl">${icon('sparkles', 14)}Sau cải tiến · Giải pháp</span><p data-notr>${esc(k.proposal)}</p><div class="gallery">${imgs('AFTER')}</div>
             ${working ? `<label class="btn ghost sm" style="margin-top:10px">${icon('upload', 15)}Tải ảnh After<input type="file" id="up-after" accept="image/*,video/*" capture="environment" multiple hidden></label>` : ''}</div>
         </div>
-        ${k.expected_benefit ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lợi ích mong đợi</span><p>${esc(k.expected_benefit)}</p></div>` : ''}
+        ${k.expected_benefit ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lợi ích mong đợi</span><p data-notr>${esc(k.expected_benefit)}</p></div>` : ''}
         ${(k.waste_types || []).length ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lãng phí được loại bỏ</span><div class="chips" style="margin-top:6px">${wasteTags(k.waste_types, 8)}</div></div>` : ''}
         </section>
 
-        ${k.kaizen_type === 'MAJOR' ? `<section class="card"><div class="card-h"><h2>Kanban triển khai</h2><span class="muted small">${tasksBy('DONE').length}/${k.tasks.length} hoàn thành</span></div><div class="card-b">
+        ${k.kaizen_type === 'MAJOR' ? `<section class="card"><div class="card-h"><h2>Kanban triển khai</h2><span class="muted small">${t('{a}/{b} hoàn thành', { a: tasksBy('DONE').length, b: k.tasks.length })}</span></div><div class="card-b">
           <div class="kanban">${[['TODO', 'Cần làm'], ['IN_PROGRESS', 'Đang làm'], ['DONE', 'Hoàn thành']].map(([s, l]) => `<div class="kcol"><h4>${l}<span>${tasksBy(s).length}</span></h4>
-            ${tasksBy(s).map((t) => `<div class="ktask"><b>${esc(t.title)}</b><span class="small muted">${t.assignee ? esc(t.assignee) : 'Chưa giao'}${t.due_date ? ' · hạn ' + dt(t.due_date) : ''}</span>
-              ${working && canTasks ? `<div class="k-act">${s !== 'TODO' ? `<button data-t="${t.id}" data-s="${s === 'DONE' ? 'IN_PROGRESS' : 'TODO'}" aria-label="Lùi">${icon('chevL', 13)}</button>` : '<span></span>'}
-                ${s !== 'DONE' ? `<button data-t="${t.id}" data-s="${s === 'TODO' ? 'IN_PROGRESS' : 'DONE'}" aria-label="Tiến">${icon('chevR', 13)}</button>` : ''}</div>` : ''}</div>`).join('')}</div>`).join('')}</div>
+            ${tasksBy(s).map((x) => `<div class="ktask"><b data-notr>${esc(x.title)}</b><span class="small muted">${x.assignee ? `<span data-notr>${esc(x.assignee)}</span>` : t('Chưa giao')}${x.due_date ? ' · ' + t('hạn {d}', { d: dt(x.due_date) }) : ''}</span>
+              ${working && canTasks ? `<div class="k-act">${s !== 'TODO' ? `<button data-t="${x.id}" data-s="${s === 'DONE' ? 'IN_PROGRESS' : 'TODO'}" aria-label="Lùi">${icon('chevL', 13)}</button>` : '<span></span>'}
+                ${s !== 'DONE' ? `<button data-t="${x.id}" data-s="${s === 'TODO' ? 'IN_PROGRESS' : 'DONE'}" aria-label="Tiến">${icon('chevR', 13)}</button>` : ''}</div>` : ''}</div>`).join('')}</div>`).join('')}</div>
           ${canTasks && ['IMPLEMENTING', 'PENDING_IE'].includes(k.status) ? `<form id="task" class="row" style="margin-top:12px"><input name="title" placeholder="Thêm công việc triển khai…" required class="grow" style="flex:1 1 200px" aria-label="Tên công việc"><input name="due_date" type="date" style="width:auto" aria-label="Hạn"><button class="btn">${icon('plus', 16)}Thêm</button></form>` : ''}
         </div></section>` : ''}
 
-        <section class="card"><div class="card-h"><h2>Thảo luận</h2><span class="muted small">${k.comments.length} bình luận</span></div><div class="card-b stack">
-          <div class="comments">${k.comments.map((c) => `<div class="cmt">${avatar(c.full_name)}<div class="bubble"><b>${esc(c.full_name)}</b> <span class="small muted">· ${esc(ROLES[c.role] || '')} · ${ago(c.created_at)}</span><p>${esc(c.body)}</p></div></div>`).join('') || '<p class="small muted">Chưa có bình luận. Hãy góp ý để ý tưởng tốt hơn.</p>'}</div>
+        <section class="card"><div class="card-h"><h2>Thảo luận</h2><span class="muted small">${t('{n} bình luận', { n: k.comments.length })}</span></div><div class="card-b stack">
+          <div class="comments">${k.comments.map((c) => `<div class="cmt">${avatar(c.full_name)}<div class="bubble"><b data-notr>${esc(c.full_name)}</b> <span class="small muted">· ${esc(t(ROLES[c.role] || ''))} · ${ago(c.created_at)}</span><p data-notr>${esc(c.body)}</p></div></div>`).join('') || '<p class="small muted">Chưa có bình luận. Hãy góp ý để ý tưởng tốt hơn.</p>'}</div>
           <form id="cmt" class="row" style="align-items:flex-end"><textarea name="body" required maxlength="2000" placeholder="Góp ý, đặt câu hỏi, chia sẻ kinh nghiệm…" style="min-height:48px;flex:1 1 240px" aria-label="Bình luận"></textarea><button class="btn">${icon('send', 16)}Gửi</button></form>
         </div></section>
       </div>
@@ -430,21 +442,21 @@ async function viewDetail(id) {
           ${canComplete ? `<p class="small muted">${k.status === 'QUICK_WIN' ? 'Cần ít nhất một ảnh After.' : 'Mọi công việc phải xong và có ảnh After.'}</p><button class="btn" id="complete">${icon('check', 16)}${k.status === 'QUICK_WIN' ? 'Hoàn thành Quick Win' : 'Hoàn thành, chuyển Kế toán'}</button>` : ''}
         </section>` : ''}
         <section class="card pad stack" style="gap:12px"><h3>Thông tin</h3><dl class="kv">
-          <dt>Người đề xuất</dt><dd>${esc(k.submitter)}</dd>
-          <dt>Người phụ trách</dt><dd>${esc(k.assignee || '—')}</dd>
+          <dt>Người đề xuất</dt><dd data-notr>${esc(k.submitter)}</dd>
+          <dt>Người phụ trách</dt><dd data-notr>${esc(k.assignee || '—')}</dd>
           <dt>Ngày gửi</dt><dd>${dt(k.submitted_at)}</dd>
           <dt>Hoàn thành</dt><dd>${dt(k.completed_at)}</dd>
-          <dt>Ước tính tiết kiệm</dt><dd>${money(k.estimated_saving)}/năm</dd></dl></section>
+          <dt>Ước tính tiết kiệm</dt><dd>${t('{v}/năm', { v: money(k.estimated_saving) })}</dd></dl></section>
         ${f || canFin ? `<section class="card pad stack" style="gap:12px"><div class="row"><h3 class="grow">Hiệu quả tài chính</h3>${f?.verified ? '<span class="pill t-good">Đã xác thực</span>' : '<span class="pill t-neutral">Dự toán</span>'}</div>
           ${f ? `<div class="roi-big num">${f.roi_percent != null ? f.roi_percent + '%' : '—'}<small>ROI năm đầu</small></div>
             <dl class="kv"><dt>Chi phí đầu tư</dt><dd>${money(f.investment_cost)}</dd><dt>Tiết kiệm / năm</dt><dd>${money(f.annual_saving)}</dd>
-            <dt>Hoàn vốn</dt><dd>${f.payback_months != null ? f.payback_months + ' tháng' : '—'}</dd>${f.verified ? `<dt>Xác thực</dt><dd>${dt(f.verified_at)}</dd>` : ''}</dl>` : '<p class="small muted">Chưa nhập số liệu.</p>'}
+            <dt>Hoàn vốn</dt><dd>${f.payback_months != null ? t('{n} tháng', { n: f.payback_months }) : '—'}</dd>${f.verified ? `<dt>Xác thực</dt><dd>${dt(f.verified_at)}</dd>` : ''}</dl>` : '<p class="small muted">Chưa nhập số liệu.</p>'}
           ${canFin ? `<form id="fin" class="stack" style="gap:8px"><input name="investment_cost" type="number" min="0" step="1000" placeholder="Chi phí đầu tư (₫)" value="${f?.investment_cost ?? ''}" aria-label="Chi phí đầu tư"><input name="annual_saving" type="number" min="0" step="1000" placeholder="Tiết kiệm / năm (₫)" value="${f?.annual_saving ?? ''}" aria-label="Tiết kiệm mỗi năm"><button class="btn ghost">Lưu dự toán</button></form>` : ''}
         </section>` : ''}
-        ${k.rewards.length ? `<section class="card pad stack" style="gap:8px"><h3>Khen thưởng</h3>${k.rewards.map((w) => `<div class="reward">${icon('award', 22)}<div><b>${esc(w.full_name)}</b><div class="small">+${w.points} điểm${w.amount ? ' · thưởng ' + money(w.amount) : ''}</div></div></div>`).join('')}</section>` : ''}
+        ${k.rewards.length ? `<section class="card pad stack" style="gap:8px"><h3>Khen thưởng</h3>${k.rewards.map((w) => `<div class="reward">${icon('award', 22)}<div><b data-notr>${esc(w.full_name)}</b><div class="small">${w.amount ? t('+{p} điểm · thưởng {v}', { p: w.points, v: money(w.amount) }) : t('+{p} điểm', { p: w.points })}</div></div></div>`).join('')}</section>` : ''}
         <section class="card pad stack" style="gap:12px"><h3>Lịch sử phê duyệt</h3>
-          <ul class="timeline">${k.approvals.map((a) => `<li class="${a.status}"><b>${{ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.level]}</b> · ${{ PENDING: 'đang chờ', APPROVED: 'đã duyệt', REJECTED: 'từ chối', REVISION: 'yêu cầu sửa' }[a.status]}
-            <div class="small muted">${a.acted_by ? esc(a.acted_by) + ' · ' : ''}${dtt(a.acted_at || a.created_at)}</div>${a.comment ? `<q>${esc(a.comment)}</q>` : ''}</li>`).join('') || '<li class="small muted">Chưa gửi duyệt</li>'}</ul></section>
+          <ul class="timeline">${k.approvals.map((a) => `<li class="${a.status}"><b>${t({ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.level])}</b> · ${t({ PENDING: 'đang chờ', APPROVED: 'đã duyệt', REJECTED: 'từ chối', REVISION: 'yêu cầu sửa' }[a.status])}
+            <div class="small muted">${a.acted_by ? `<span data-notr>${esc(a.acted_by)}</span> · ` : ''}${dtt(a.acted_at || a.created_at)}</div>${a.comment ? `<q data-notr>${esc(a.comment)}</q>` : ''}</li>`).join('') || '<li class="small muted">Chưa gửi duyệt</li>'}</ul></section>
       </aside>
     </div>`;
 
@@ -472,8 +484,8 @@ async function viewNew(_, params) {
 
   const draw = () => {
     app.innerHTML = `<div class="wizard">
-      <div class="page-h"><div class="grow"><h1>Đề xuất cải tiến</h1><p>${qrLine ? `${icon('factory', 16)} ${esc(qrLine.workshop_name)} / <b>${esc(qrLine.name)}</b> (quét QR)` : 'Mô tả điều bạn thấy, điều bạn muốn thay đổi, và chụp ảnh hiện trường.'}</p></div></div>
-      <div class="wsteps">${STEPS.map((s, i) => `<div class="wstep ${i === step ? 'on' : i < step ? 'done' : ''}"><span class="n">${i < step ? '✓' : i + 1}</span><span class="t">${s}</span></div>`).join('')}</div>
+      <div class="page-h"><div class="grow"><h1>Đề xuất cải tiến</h1><p>${qrLine ? `${icon('factory', 16)} <span data-notr>${esc(qrLine.workshop_name)} / <b>${esc(qrLine.name)}</b></span> ${t('(quét QR)')}` : 'Mô tả điều bạn thấy, điều bạn muốn thay đổi, và chụp ảnh hiện trường.'}</p></div></div>
+      <div class="wsteps">${STEPS.map((s, i) => `<div class="wstep ${i === step ? 'on' : i < step ? 'done' : ''}"><span class="n">${i < step ? '✓' : i + 1}</span><span class="t">${t(s)}</span></div>`).join('')}</div>
       <form class="card pad stack" id="wf" novalidate>${[stepProblem, stepSolution, stepReview][step]()}</form>
       <div class="wfoot">${step ? `<button class="btn ghost" id="prev">${icon('chevL', 16)}Quay lại</button>` : '<span></span>'}
         <div class="row">${step === 2 ? `<button class="btn ghost" id="draft">Lưu nháp</button><button class="btn lg" id="send">${icon('send', 18)}Gửi duyệt</button>` : `<button class="btn lg" id="next">Tiếp tục${icon('arrowR', 18)}</button>`}</div></div></div>`;
@@ -495,10 +507,10 @@ async function viewNew(_, params) {
       <input type="file" id="w-files" accept="image/*,video/*" capture="environment" multiple></label>
     <div class="previews" id="pv">${d.files.map((f, i) => `<figure>${f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" alt="">` : `<span class="tag">${esc(f.name)}</span>`}<button type="button" data-rm="${i}" aria-label="Xóa ảnh">${icon('x', 12)}</button></figure>`).join('')}</div>
     <h3 style="margin-top:8px">Kiểm tra lại trước khi gửi</h3>
-    <dl class="review"><dt>Tiêu đề</dt><dd><b>${esc(d.title)}</b></dd><dt>Lĩnh vực</dt><dd>${esc(cats.find((c) => c.id === +d.category_id)?.name)}</dd>
-      <dt>Hiện trạng</dt><dd>${esc(d.problem)}</dd><dt>Giải pháp</dt><dd>${esc(d.proposal)}</dd>
+    <dl class="review"><dt>Tiêu đề</dt><dd data-notr><b>${esc(d.title)}</b></dd><dt>Lĩnh vực</dt><dd>${esc(cats.find((c) => c.id === +d.category_id)?.name)}</dd>
+      <dt>Hiện trạng</dt><dd data-notr>${esc(d.problem)}</dd><dt>Giải pháp</dt><dd data-notr>${esc(d.proposal)}</dd>
       <dt>Lãng phí</dt><dd><div class="chips">${wasteTags(d.waste_types, 8) || '—'}</div></dd><dt>Công cụ</dt><dd>${toolTag(d.lean_tool) || '—'}</dd>
-      <dt>Ước tính</dt><dd>${d.estimated_saving ? money(d.estimated_saving) + '/năm' : '—'}</dd></dl>`;
+      <dt>Ước tính</dt><dd>${d.estimated_saving ? t('{v}/năm', { v: money(d.estimated_saving) }) : '—'}</dd></dl>`;
 
   const collect = () => { const fd = new FormData($('#wf')); for (const [key, v] of fd.entries()) if (key in d && key !== 'files') d[key] = v; };
   const bind = () => {
@@ -529,7 +541,7 @@ async function viewNew(_, params) {
       if (!navigator.onLine) { await queue(item); toast('Đang ngoại tuyến. Đã lưu, sẽ tự gửi khi có mạng', 'wifiOff'); location.hash = '#/'; return; }
       try {
         const r = await api('/kaizens', { method: 'POST', form: toForm(item) });
-        toast(submit ? `Đã gửi ${r.code}. Tổ trưởng sẽ phản hồi trong 48 giờ` : `Đã lưu nháp ${r.code}`); location.hash = '#/kaizen/' + r.id;
+        toast(submit ? t('Đã gửi {code}. Tổ trưởng sẽ phản hồi trong 48 giờ', { code: r.code }) : t('Đã lưu nháp {code}', { code: r.code })); location.hash = '#/kaizen/' + r.id;
       } catch (err) {
         if (!err.status || err.status >= 500) { await queue(item); toast('Mất kết nối. Đã lưu ngoại tuyến', 'wifiOff'); location.hash = '#/'; }
         else { toast(err.message, 'alert'); $$('.wfoot button').forEach((b) => (b.disabled = false)); }
@@ -551,12 +563,12 @@ async function viewAnalytics(_, params) {
   const bs = Object.fromEntries(s.by_status.map((x) => [x.status, +x.total]));
   const g = (...k) => k.reduce((a, x) => a + (bs[x] || 0), 0);
   const funnel = [
-    { label: 'Đã gửi', value: s.total_ideas },
-    { label: 'Qua sơ duyệt', value: g('QUICK_WIN', 'PENDING_IE', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
-    { label: 'Đã triển khai', value: g('QUICK_WIN', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
-    { label: 'Hoàn thành', value: g('COMPLETED') },
+    { label: t('Đã gửi'), value: s.total_ideas },
+    { label: t('Qua sơ duyệt'), value: g('QUICK_WIN', 'PENDING_IE', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
+    { label: t('Đã triển khai'), value: g('QUICK_WIN', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
+    { label: t('Hoàn thành'), value: g('COMPLETED') },
   ];
-  const months = trend.map((t) => ({ label: 'Tháng ' + t.month.slice(5) + '/' + t.month.slice(0, 4), short: 'T' + +t.month.slice(5), submitted: +t.submitted, completed: +t.completed }));
+  const months = trend.map((x) => ({ label: t('Tháng {m}/{y}', { m: x.month.slice(5), y: x.month.slice(0, 4) }), short: t('T{m}', { m: +x.month.slice(5) }), submitted: +x.submitted, completed: +x.completed }));
   const net = s.verified_saving - s.verified_investment;
   const chip = (p, l) => `<a class="chip ${period === p ? 'on' : ''}" href="#/analytics?p=${p}">${l}</a>`;
 
@@ -564,27 +576,27 @@ async function viewAnalytics(_, params) {
     <div class="page-h"><div class="grow"><h1>Phân tích & ROI</h1><p>Hiệu quả chương trình Kaizen: số lượng, tốc độ, lãng phí được loại bỏ và giá trị tài chính đã xác thực.</p></div>
       <div class="chips">${chip('30', '30 ngày')}${chip('90', 'Quý')}${chip('365', '12 tháng')}${chip('all', 'Tất cả')}</div></div>
     <section class="grid g4" style="margin-bottom:16px">
-      ${kpi('bulb', 'Sáng kiến đã gửi', s.total_ideas, `${s.participants} người tham gia`)}
-      ${kpi('check', 'Hoàn thành', s.completed, `${s.quick_wins} Quick Win · ${s.major_projects} dự án`)}
-      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(s.verified_saving), `Đầu tư ${moneyShort(s.verified_investment)}`)}
+      ${kpi('bulb', 'Sáng kiến đã gửi', s.total_ideas, t('{n} người tham gia', { n: s.participants }))}
+      ${kpi('check', 'Hoàn thành', s.completed, t('{q} Quick Win · {m} dự án', { q: s.quick_wins, m: s.major_projects }))}
+      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(s.verified_saving), t('Đầu tư {v}', { v: moneyShort(s.verified_investment) }))}
       ${kpi('trend', 'Lợi ích ròng năm đầu', moneyShort(net), s.verified_investment ? `ROI ${Math.round(net / s.verified_investment * 100)}%` : 'Chưa có dự án xác thực')}
     </section>
     <section class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);margin-bottom:16px" id="row1">
       <div class="card"><div class="card-h"><h2>Đề xuất và hoàn thành theo tháng</h2><div class="legend"><span><i class="sw s1"></i>Đã gửi</span><span><i class="sw s2"></i>Hoàn thành</span></div></div>
-        <div class="card-b">${columnChart(months, [{ key: 'submitted', label: 'Đã gửi', cls: 's1' }, { key: 'completed', label: 'Hoàn thành', cls: 's2' }])}
+        <div class="card-b">${columnChart(months, { aria: t('Đề xuất và hoàn thành theo tháng') }, [{ key: 'submitted', label: t('Đã gửi'), cls: 's1' }, { key: 'completed', label: t('Hoàn thành'), cls: 's2' }])}
         <details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">Xem dạng bảng</summary><div class="table-wrap"><table><tr><th>Tháng</th><th class="r">Đã gửi</th><th class="r">Hoàn thành</th></tr>${months.map((m2) => `<tr><td>${m2.label}</td><td class="r">${m2.submitted}</td><td class="r">${m2.completed}</td></tr>`).join('')}</table></div></details></div></div>
       <div class="card"><div class="card-h"><h2>Tỷ lệ hoàn thành</h2></div><div class="card-b stack" style="align-items:center;text-align:center">
-        ${ring(s.completion_rate, 132)}<p class="small muted">Tỷ lệ sáng kiến được duyệt đã hoàn thành.<br>Thời gian sơ duyệt trung bình <b style="color:var(--ink)">${s.avg_leader_response_hours} giờ</b> (mục tiêu 48 giờ).</p></div></div>
+        ${ring(s.completion_rate, 132)}<p class="small muted">Tỷ lệ sáng kiến được duyệt đã hoàn thành.<br><span>Thời gian sơ duyệt trung bình</span> <b style="color:var(--ink)">${t('{h} giờ', { h: s.avg_leader_response_hours })}</b> <span>(mục tiêu 48 giờ).</span></p></div></div>
     </section>
     <section class="grid g2" style="margin-bottom:16px">
       <div class="card"><div class="card-h"><h2>Lãng phí được tấn công</h2><span class="small muted">Số sáng kiến</span></div><div class="card-b">
-        ${wastes.length ? barList(wastes.map((w) => ({ ...w, label: WASTE[w.waste]?.vi || w.waste, value: +w.total })), { icon: (r) => icon(WASTE[r.waste]?.icon || 'alert', 14), cls: 'seq' }) : empty('chart', 'Chưa có dữ liệu', 'Hãy gắn loại lãng phí khi gửi đề xuất.')}</div></div>
+        ${wastes.length ? barList(wastes.map((w) => ({ ...w, label: t(WASTE[w.waste]?.vi || w.waste), value: +w.total })), { icon: (r) => icon(WASTE[r.waste]?.icon || 'alert', 14), cls: 'seq' }) : empty('chart', 'Chưa có dữ liệu', 'Hãy gắn loại lãng phí khi gửi đề xuất.')}</div></div>
       <div class="card"><div class="card-h"><h2>Phễu chuyển đổi</h2><span class="small muted">Từ ý tưởng đến kết quả</span></div><div class="card-b">${barList(funnel, { cls: 's1' })}
-        <h3 style="margin:20px 0 10px">Theo lĩnh vực</h3>${barList(s.by_category.map((c) => ({ label: c.category, value: +c.total })), { cls: 'seq' })}</div></div>
+        <h3 style="margin:20px 0 10px">Theo lĩnh vực</h3>${barList(s.by_category.map((c) => ({ label: t(c.category), value: +c.total })), { cls: 'seq' })}</div></div>
     </section>
     ${roi.length ? `<section class="card"><div class="card-h"><h2>ROI theo xưởng và tháng</h2><span class="small muted">Chỉ gồm dự án đã được Kế toán xác thực</span></div>
       <div class="table-wrap"><table><tr><th>Tháng</th><th>Xưởng</th><th class="r">Dự án</th><th class="r">Đầu tư</th><th class="r">Tiết kiệm / năm</th><th class="r">ROI</th><th class="r">Hoàn vốn</th></tr>
-      ${roi.map((x) => `<tr><td class="mono">${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="r">${x.projects}</td><td class="r">${money(x.investment)}</td><td class="r">${money(x.annual_saving)}</td><td class="r"><b style="color:var(--good)">${x.roi_percent ?? '—'}%</b></td><td class="r">${x.payback_months ?? '—'} tháng</td></tr>`).join('')}</table></div></section>` : ''}`;
+      ${roi.map((x) => `<tr><td class="mono">${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="r">${x.projects}</td><td class="r">${money(x.investment)}</td><td class="r">${money(x.annual_saving)}</td><td class="r"><b style="color:var(--good)">${x.roi_percent ?? '—'}%</b></td><td class="r">${x.payback_months != null ? t('{n} tháng', { n: x.payback_months }) : '—'}</td></tr>`).join('')}</table></div></section>` : ''}`;
   if (innerWidth < 980) $('#row1').style.gridTemplateColumns = 'minmax(0,1fr)';
 }
 
@@ -593,20 +605,20 @@ async function viewLeaderboard() {
   const [rows, m] = await Promise.all([api('/reports/leaderboard'), api('/auth/me')]);
   const mb = beltOf(m.total_points || 0), top = rows.slice(0, 3);
   const pod = (r, i) => { if (!r) return '<div></div>'; const b = beltOf(r.points); return `<div class="card pod ${i === 0 ? 'first' : ''}">
-    <span class="rank">HẠNG ${i + 1}</span>${beltSvg(b, i === 0 ? 72 : 56)}<b>${esc(r.full_name)}</b><span class="small muted">${esc(r.workshop || ROLES[r.role])}</span>
-    <span class="pts">${r.points}<small class="muted" style="font-size:13px"> điểm</small></span><span class="small muted">${b.vi} · ${r.completed}/${r.ideas} hoàn thành</span></div>`; };
+    <span class="rank">${t('HẠNG {n}', { n: i + 1 })}</span>${beltSvg(b, i === 0 ? 72 : 56)}<b data-notr>${esc(r.full_name)}</b><span class="small muted">${esc(r.workshop || t(ROLES[r.role]))}</span>
+    <span class="pts">${r.points}<small class="muted" style="font-size:13px"> điểm</small></span><span class="small muted">${t('{belt} · {c}/{n} hoàn thành', { belt: t(b.vi), c: r.completed, n: r.ideas })}</span></div>`; };
   app.innerHTML = `
     <div class="page-h"><div class="grow"><h1>Bảng vàng Kaizen</h1><p>Vinh danh những người tạo ra cải tiến thực sự. Điểm chỉ được cộng khi sáng kiến hoàn thành và được xác nhận.</p></div></div>
     <section class="podium" style="margin-bottom:24px">${pod(top[1], 1)}${pod(top[0], 0)}${pod(top[2], 2)}</section>
     <section class="card" style="margin-bottom:28px"><div class="card-h"><h2>Xếp hạng</h2></div><div class="table-wrap"><table>
       <tr><th>#</th><th>Nhân viên</th><th>Cấp đai</th><th class="r">Sáng kiến</th><th class="r">Hoàn thành</th><th class="r">Thưởng</th><th class="r">Điểm</th></tr>
       ${rows.map((r, i) => { const b = beltOf(r.points); return `<tr class="${r.user_id === m.id ? 'me' : ''}"><td class="mono">${i + 1}</td>
-        <td><div class="row" style="flex-wrap:nowrap">${avatar(r.full_name)}<span><b>${esc(r.full_name)}</b><br><span class="small muted">${esc(r.workshop || ROLES[r.role])}</span></span></div></td>
-        <td><div class="row" style="flex-wrap:nowrap;gap:6px">${beltSvg(b, 26)}<span class="small">${b.vi}</span></div></td>
+        <td><div class="row" style="flex-wrap:nowrap">${avatar(r.full_name)}<span><b data-notr>${esc(r.full_name)}</b><br><span class="small muted">${esc(r.workshop || t(ROLES[r.role]))}</span></span></div></td>
+        <td><div class="row" style="flex-wrap:nowrap;gap:6px">${beltSvg(b, 26)}<span class="small">${t(b.vi)}</span></div></td>
         <td class="r">${r.ideas}</td><td class="r">${r.completed}</td><td class="r">${r.amount ? money(r.amount) : '—'}</td><td class="r"><b>${r.points}</b></td></tr>`; }).join('')}</table></div></section>
     <section><div class="eyebrow">Lộ trình phát triển</div><h2 style="margin:4px 0 4px;font-size:22px">5 cấp đai Kaizen</h2><p class="muted" style="margin-bottom:16px">Mô phỏng hệ thống đai Lean Six Sigma: điểm cải tiến tích lũy quyết định cấp đai của bạn.</p>
       <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep ${i === mb.index ? 'me' : ''}"><div class="row">${beltSvg(b, 48)}<span class="grow"></span>${i === mb.index ? '<span class="pill t-good">Bạn ở đây</span>' : ''}</div>
-        <span class="lvl">Cấp ${i + 1} · từ ${b.min} điểm</span><h3>${b.vi}</h3><p>${b.desc}</p><span class="small" style="font-weight:700;color:var(--brand)">${b.step}</span></div>`).join('')}</div></section>`;
+        <span class="lvl">${t('Cấp {n} · từ {p} điểm', { n: i + 1, p: b.min })}</span><h3>${t(b.vi)}</h3><p>${t(b.desc)}</p><span class="small" style="font-weight:700;color:var(--brand)">${t(b.step)}</span></div>`).join('')}</div></section>`;
 }
 
 // ============ academy ============
@@ -617,13 +629,13 @@ function viewAcademy() {
     <section class="acad-sec" id="principles"><div class="eyebrow">Tư duy</div><h2>10 nguyên tắc Kaizen xây dựng hệ thống tốt hơn</h2><p>Kaizen (改善) nghĩa là "thay đổi để tốt hơn". Đây là những nguyên tắc giúp cải tiến trở thành thói quen hằng ngày.</p>
       <div class="principles">${PRINCIPLES.map(([ic, t, d2], i) => `<div class="card prin"><span class="p-n">${String(i + 1).padStart(2, '0')}</span><span class="p-ic">${icon(ic, 22)}</span><h3>${t}</h3><p>${d2}</p></div>`).join('')}</div></section>
     <section class="acad-sec" id="wastes"><div class="eyebrow">Nhận diện</div><h2>8 lãng phí trong Lean (DOWNTIME)</h2><p>Mọi hoạt động không tạo giá trị cho khách hàng là lãng phí. Tập trung vào giá trị, loại bỏ phần không tạo giá trị.</p>
-      <div class="wastes">${WASTES.map((w) => `<div class="card waste"><div class="w-h"><span class="w-ic">${icon(w.icon, 22)}</span><div><b>${w.vi}</b><span>${w.en}</span></div></div><p class="small">${w.desc}</p>
-        <p class="ex"><b>Ví dụ:</b> ${w.example}</p><a class="small" style="font-weight:700" href="#/new?waste=${w.code}">Đề xuất loại bỏ ${icon('arrowR', 14)}</a></div>`).join('')}</div></section>
+      <div class="wastes">${WASTES.map((w) => `<div class="card waste"><div class="w-h"><span class="w-ic">${icon(w.icon, 22)}</span><div><b>${t(w.vi)}</b><span>${w.en}</span></div></div><p class="small">${w.desc}</p>
+        <p class="ex"><b>Ví dụ:</b> ${t(w.example)}</p><a class="small" style="font-weight:700" href="#/new?waste=${w.code}">Đề xuất loại bỏ ${icon('arrowR', 14)}</a></div>`).join('')}</div></section>
     <section class="acad-sec" id="tools"><div class="eyebrow">Phương pháp</div><h2>Công cụ Lean tại nơi làm việc</h2><p>Công cụ thông minh hơn, nơi làm việc tốt hơn, cải tiến liên tục.</p>
       <div class="tools">${GEMBA_TOOLS.map(([ic, t, tag, d2]) => `<div class="card tool"><div class="t-h"><span class="t-ic">${icon(ic, 22)}</span><div><span>${tag}</span><b>${t}</b></div></div><p class="small">${d2}</p></div>`).join('')}
         ${TOOLS.filter((t) => t.code !== 'OTHER').map((t) => `<div class="card tool"><div class="t-h"><span class="t-ic">${icon(t.icon, 22)}</span><div><span>${t.tag}</span><b>${t.vi}</b></div></div><p class="small">${t.desc}</p><ul>${t.points.map((p) => `<li>${p}</li>`).join('')}</ul></div>`).join('')}</div></section>
     <section class="acad-sec" id="belts"><div class="eyebrow">Phát triển</div><h2>Hành trình đai Kaizen</h2><p>Học nền tảng → Hỗ trợ quy trình → Thực hành & cải tiến → Dẫn dắt & kèm cặp → Chiến lược & chuyển đổi.</p>
-      <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep">${beltSvg(b, 48)}<span class="lvl">Bước ${i + 1}</span><h3>${b.step}</h3><p>${b.vi}: ${b.desc}</p></div>`).join('')}</div></section>
+      <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep">${beltSvg(b, 48)}<span class="lvl">${t('Bước {n}', { n: i + 1 })}</span><h3>${t(b.step)}</h3><p>${t(b.vi)}: ${t(b.desc)}</p></div>`).join('')}</div></section>
     <div class="card motto"><b>Thay đổi nhỏ hôm nay. Hệ thống mạnh hơn ngày mai.</b><span>Tiếp tục cải tiến, tiếp tục phát triển.</span><p style="margin-top:14px"><a class="btn" href="#/new">${icon('camera', 18)}Đề xuất cải tiến</a></p></div>`;
   $$('[data-jump]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); document.getElementById(a.dataset.jump).scrollIntoView({ behavior: 'smooth' }); }));
 }
@@ -637,13 +649,13 @@ async function viewAdmin() {
   app.innerHTML = `
     <div class="page-h"><div class="grow"><h1>Quản trị hệ thống</h1><p>Người dùng, phân quyền và mã QR cho từng dây chuyền.</p></div></div>
     <section class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);margin-bottom:16px" id="adm1">
-      <div class="card"><div class="card-h"><h2>Người dùng</h2><span class="muted small">${users.length} tài khoản</span></div><div class="table-wrap"><table>
+      <div class="card"><div class="card-h"><h2>Người dùng</h2><span class="muted small">${t('{n} tài khoản', { n: users.length })}</span></div><div class="table-wrap"><table>
         <tr><th>Mã</th><th>Họ tên</th><th>Vai trò</th><th>Xưởng</th><th>Trạng thái</th></tr>
-        ${users.map((x) => `<tr><td class="mono">${esc(x.employee_code)}</td><td>${esc(x.full_name)}</td><td>${esc(ROLES[x.role] || x.role)}</td><td>${esc(ws[x.workshop_id]?.name || '—')}</td><td>${x.is_active === false ? '<span class="pill t-bad">Khóa</span>' : '<span class="pill t-good">Hoạt động</span>'}</td></tr>`).join('')}</table></div></div>
+        ${users.map((x) => `<tr><td class="mono">${esc(x.employee_code)}</td><td data-notr>${esc(x.full_name)}</td><td>${esc(t(ROLES[x.role] || x.role))}</td><td>${esc(ws[x.workshop_id]?.name || '—')}</td><td>${x.is_active === false ? '<span class="pill t-bad">Khóa</span>' : '<span class="pill t-good">Hoạt động</span>'}</td></tr>`).join('')}</table></div></div>
       <form class="card pad stack" id="nu" style="gap:10px"><h2>Thêm người dùng</h2>
         <div class="field"><label class="f" for="nu-code">Mã nhân viên</label><input id="nu-code" name="employee_code" required></div>
         <div class="field"><label class="f" for="nu-name">Họ tên</label><input id="nu-name" name="full_name" required></div>
-        <div class="field"><label class="f" for="nu-role">Vai trò</label><select id="nu-role" name="role">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div class="field"><label class="f" for="nu-role">Vai trò</label><select id="nu-role" name="role">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}">${t(v)}</option>`).join('')}</select></div>
         <div class="field"><label class="f" for="nu-ws">Xưởng</label><select id="nu-ws" name="workshop_id"><option value="">—</option>${master.workshops.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select></div>
         <div class="field"><label class="f" for="nu-pw">Mật khẩu ban đầu</label><input id="nu-pw" name="password" type="text" minlength="6" required value="123456"></div>
         <button class="btn">${icon('plus', 16)}Tạo tài khoản</button></form>
@@ -658,7 +670,7 @@ async function viewAdmin() {
   $('#nu').onsubmit = async (e) => {
     e.preventDefault(); const v = Object.fromEntries(new FormData(e.target));
     v.workshop_id = v.workshop_id ? +v.workshop_id : null; v.factory_id = master.factories[0]?.id ?? null;
-    try { await api('/admin/users', { method: 'POST', body: v }); toast('Đã tạo tài khoản ' + v.employee_code); viewAdmin(); } catch (err) { toast(err.message, 'alert'); }
+    try { await api('/admin/users', { method: 'POST', body: v }); toast(t('Đã tạo tài khoản {code}', { code: v.employee_code })); viewAdmin(); } catch (err) { toast(err.message, 'alert'); }
   };
   $('#nl').onsubmit = async (e) => {
     e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); v.parent_id = +v.parent_id;
@@ -672,7 +684,8 @@ async function viewAdmin() {
 
 // ============ boot ============
 if (!DEMO && 'serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+startAutoTranslate();
 updateNet();
 render();
-sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh'));
-setInterval(() => sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh')), 30000);
+sync(synced);
+setInterval(() => sync(synced), 30000);

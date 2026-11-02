@@ -82,6 +82,12 @@ p { margin: 0; }
 .tabbar { display: none; }
 .scrim { display: none; }
 
+/* ---------- language switcher ---------- */
+.lang { position: relative; display: inline-flex; align-items: center; color: var(--muted); }
+.lang .ic { position: absolute; left: 9px; pointer-events: none; }
+.lang select { width: auto; padding: 6px 10px 6px 30px; font-size: 13px; font-weight: 600; border-radius: 20px; background: var(--surface); cursor: pointer; }
+@media (max-width: 720px) { .top .lang select { width: 64px; color: transparent; } .top .lang select option { color: var(--ink); } .top .lang::after { content: attr(data-short); position: absolute; left: 30px; font-size: 13px; font-weight: 700; color: var(--ink); pointer-events: none; } }
+
 /* ---------- primitives ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 600; font-size: 14px; padding: 9px 16px; border-radius: 9px; border: 1px solid transparent; cursor: pointer; background: var(--brand); color: var(--brand-ink); white-space: nowrap; transition: background .15s, transform .05s; }
 .btn:hover { background: var(--brand-strong); }

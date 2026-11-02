@@ -60,6 +60,7 @@ export const ICON_PATHS = {
   road: 'M4 22 9 2M20 22 15 2M12 6v2M12 12v2M12 18v2',
   link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
   copy: 'M9 9h12v12H9zM5 15H3V3h12v2',
+  globe: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20',
 };
 
 export function icon(name, size = 20, cls = '') {

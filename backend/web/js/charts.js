@@ -10,14 +10,14 @@ function niceMax(v) {
 }
 
 // Grouped vertical bars. series: [{key,label,cls}], rows: [{label, [key]: n}]
-export function columnChart(rows, series, { height = 220 } = {}) {
+export function columnChart(rows, { aria = '', height = 220 } = {}, series = []) {
   const W = 640, H = height, L = 34, B = 26, T = 10, R = 6;
   const max = niceMax(Math.max(1, ...rows.flatMap((r) => series.map((s) => +r[s.key] || 0))));
   const pw = (W - L - R) / rows.length, gap = 2;
   const bw = Math.min(18, (pw * 0.62 - gap * (series.length - 1)) / series.length);
   const y = (v) => T + (H - T - B) * (1 - v / max);
   const ticks = [0, max / 2, max];
-  let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${series.map((s) => s.label).join(', ')} theo tháng">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${aria}">`;
   ticks.forEach((t) => {
     svg += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" class="grid${t === 0 ? ' base' : ''}"/>`;
     svg += `<text x="${L - 6}" y="${y(t) + 4}" class="axis" text-anchor="end">${fmtN(t)}</text>`;
