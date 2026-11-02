@@ -2,27 +2,25 @@
 // Implements the same /api/v1 contract as the Go API, persisted in localStorage.
 // Enabled only when window.KAIZEN_DEMO is true.
 
-const KEY = 'kz_demo_db_v1';
+const KEY = 'kz_demo_db_v2';
 const now = () => new Date().toISOString();
 const daysAgo = (d, h = 0) => new Date(Date.now() - d * 864e5 - h * 36e5).toISOString();
 
-const PIXEL = (color) => {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="${color}"/><text x="160" y="130" font-size="22" text-anchor="middle" fill="#fff" font-family="sans-serif">ẢNH MẪU</text></svg>`;
+const PIXEL = (color, label = 'ẢNH MẪU') => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><defs><pattern id="p" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="24" fill="#ffffff" opacity=".06"/></pattern></defs><rect width="480" height="300" fill="${color}"/><rect width="480" height="300" fill="url(#p)"/><text x="240" y="160" font-size="26" font-weight="700" text-anchor="middle" fill="#fff" font-family="sans-serif" letter-spacing="4">${label}</text><text x="240" y="190" font-size="13" text-anchor="middle" fill="#fff" opacity=".7" font-family="sans-serif">ảnh minh họa</text></svg>`;
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 };
 
 function seed() {
   const users = [
-    { id: 1, employee_code: 'admin', full_name: 'Quản trị hệ thống', role: 'ADMIN', factory_id: null, workshop_id: null, line_id: null },
-    { id: 2, employee_code: 'CN001', full_name: 'Nguyễn Văn Công', role: 'WORKER', factory_id: 1, workshop_id: 1, line_id: 1 },
-    { id: 3, employee_code: 'TT001', full_name: 'Trần Thị Thu', role: 'LEADER', factory_id: 1, workshop_id: 1, line_id: null },
-    { id: 4, employee_code: 'IE001', full_name: 'Lê Văn Hải', role: 'IE', factory_id: 1, workshop_id: null, line_id: null },
-    { id: 5, employee_code: 'KT001', full_name: 'Phạm Thị Lan', role: 'FINANCE', factory_id: 1, workshop_id: null, line_id: null },
-    { id: 6, employee_code: 'GD001', full_name: 'Võ Minh Đức', role: 'DIRECTOR', factory_id: 1, workshop_id: null, line_id: null },
-    { id: 7, employee_code: 'CN002', full_name: 'Đỗ Thị Mai', role: 'WORKER', factory_id: 1, workshop_id: 1, line_id: 2 },
-  ];
+    ['admin', 'Quản trị hệ thống', 'ADMIN', null, null],
+    ['CN001', 'Nguyễn Văn Công', 'WORKER', 1, 1], ['TT001', 'Trần Thị Thu', 'LEADER', 1, null], ['IE001', 'Lê Văn Hải', 'IE', null, null],
+    ['KT001', 'Phạm Thị Lan', 'FINANCE', null, null], ['GD001', 'Võ Minh Đức', 'DIRECTOR', null, null],
+    ['CN002', 'Đỗ Thị Mai', 'WORKER', 1, 2], ['CN003', 'Huỳnh Văn Tài', 'WORKER', 2, 3], ['CN004', 'Lý Thị Hồng', 'WORKER', 1, 1],
+    ['CN005', 'Phan Quốc Bảo', 'WORKER', 2, 3], ['TT002', 'Ngô Văn Sơn', 'LEADER', 2, null], ['CN006', 'Trương Thị Ngọc', 'WORKER', 1, 2],
+  ].map(([employee_code, full_name, role, workshop_id, line_id], i) => ({ id: i + 1, employee_code, full_name, role, factory_id: role === 'ADMIN' ? null : 1, workshop_id, line_id, is_active: true }));
   const db = {
-    seq: { idea: 6, att: 10, ap: 20, task: 10, rw: 5, code: 6 },
+    seq: { idea: 0, att: 0, ap: 0, task: 0, rw: 0, code: 0, cm: 0, user: users.length, line: 3 },
     users,
     categories: [['SAFETY', 'An toàn'], ['QUALITY', 'Chất lượng'], ['COST', 'Chi phí'], ['DELIVERY', 'Giao hàng / Năng suất'], ['5S', '5S / Môi trường làm việc'], ['OTHER', 'Khác']]
       .map(([code, name], i) => ({ id: i + 1, code, name })),
@@ -31,56 +29,80 @@ function seed() {
     lines: [{ id: 1, workshop_id: 1, code: 'L01', name: 'Chuyền 01', qr_token: 'demo-line-01' },
       { id: 2, workshop_id: 1, code: 'L02', name: 'Chuyền 02', qr_token: 'demo-line-02' },
       { id: 3, workshop_id: 2, code: 'C01', name: 'Bàn cắt 01', qr_token: 'demo-line-03' }],
-    ideas: [], attachments: [], approvals: [], tasks: [], financials: [], rewards: [],
+    ideas: [], attachments: [], approvals: [], tasks: [], financials: [], rewards: [], comments: [], likes: [],
   };
-  const idea = (id, o) => db.ideas.push({ id, code: `KZ-2026-${String(id).padStart(6, '0')}`, expected_benefit: null, line_id: 1,
-    factory_id: 1, workshop_id: 1, kaizen_type: null, assignee_id: null, estimated_saving: 0, completed_at: null, ...o, updated_at: o.created_at });
-  const ap = (id, idea_id, level, status, acted_by, comment, created_at, acted_at) =>
-    db.approvals.push({ id, idea_id, level, approver_role: level, workshop_id: level === 'LEADER' ? 1 : null, status, acted_by, comment, created_at, acted_at });
-
-  idea(1, { title: 'Gắn nam châm giữ kéo tại bàn may', category_id: 5, submitter_id: 2, status: 'COMPLETED', kaizen_type: 'QUICK_WIN', assignee_id: 2,
-    problem: 'Kéo thường rơi xuống sàn, mất 5–10 giây tìm mỗi lần.', proposal: 'Gắn dải nam châm cạnh bàn để giữ kéo.', estimated_saving: 6000000,
-    created_at: daysAgo(20), submitted_at: daysAgo(20), completed_at: daysAgo(19) });
-  ap(1, 1, 'LEADER', 'APPROVED', 3, 'Làm ngay', daysAgo(20), daysAgo(19, 20));
-  db.rewards.push({ id: 1, idea_id: 1, user_id: 2, points: 10, amount: 0, reason: 'QUICK_WIN_COMPLETED', status: 'GRANTED', created_at: daysAgo(19) });
-
-  idea(2, { title: 'Băng tải cấp bán thành phẩm tự động', category_id: 3, submitter_id: 7, status: 'COMPLETED', kaizen_type: 'MAJOR', assignee_id: 4,
-    problem: 'Công nhân phải đi lấy bán thành phẩm, mất ~40 phút/ca.', proposal: 'Lắp băng tải mini nối khu cắt và chuyền 02.', estimated_saving: 120000000,
-    line_id: 2, created_at: daysAgo(45), submitted_at: daysAgo(45), completed_at: daysAgo(6) });
-  ap(2, 2, 'LEADER', 'APPROVED', 3, null, daysAgo(45), daysAgo(44, 18));
-  ap(3, 2, 'IE', 'APPROVED', 4, 'Khả thi, giao IE theo dõi', daysAgo(44), daysAgo(43));
-  ap(4, 2, 'FINANCE', 'APPROVED', 5, 'Đã đối chiếu hóa đơn và năng suất 4 tuần', daysAgo(8), daysAgo(6));
-  db.financials.push({ idea_id: 2, investment_cost: 30000000, annual_saving: 90000000, currency: 'VND', verified: true, verified_at: daysAgo(6), note: null });
-  db.tasks.push({ id: 1, idea_id: 2, title: 'Khảo sát mặt bằng', status: 'DONE', assignee_id: 4, due_date: null, position: 1 },
-    { id: 2, idea_id: 2, title: 'Lắp đặt băng tải', status: 'DONE', assignee_id: 4, due_date: null, position: 2 });
-  db.rewards.push({ id: 2, idea_id: 2, user_id: 7, points: 50, amount: 900000, reason: 'MAJOR_PROJECT_COMPLETED', status: 'GRANTED', created_at: daysAgo(6) });
-
-  idea(3, { title: 'Đồ gá định vị túi áo', category_id: 2, submitter_id: 2, status: 'IMPLEMENTING', kaizen_type: 'MAJOR', assignee_id: 4,
-    problem: 'Tỷ lệ lỗi lệch túi 3,2%.', proposal: 'Làm đồ gá mica định vị túi.', estimated_saving: 45000000, created_at: daysAgo(10), submitted_at: daysAgo(10) });
-  ap(5, 3, 'LEADER', 'APPROVED', 3, null, daysAgo(10), daysAgo(9, 20));
-  ap(6, 3, 'IE', 'APPROVED', 4, 'Thử nghiệm trên chuyền 01', daysAgo(9), daysAgo(8));
-  db.financials.push({ idea_id: 3, investment_cost: 5000000, annual_saving: 45000000, currency: 'VND', verified: false, verified_at: null, note: null });
-  db.tasks.push({ id: 3, idea_id: 3, title: 'Thiết kế bản vẽ đồ gá', status: 'DONE', assignee_id: 4, due_date: null, position: 1 },
-    { id: 4, idea_id: 3, title: 'Gia công mica', status: 'IN_PROGRESS', assignee_id: 4, due_date: '2026-11-10', position: 2 },
-    { id: 5, idea_id: 3, title: 'Đào tạo công nhân chuyền 01', status: 'TODO', assignee_id: 3, due_date: '2026-11-15', position: 3 });
-
-  idea(4, { title: 'Sơn vạch lối đi xe đẩy', category_id: 1, submitter_id: 7, status: 'PENDING_LEADER', line_id: 2,
-    problem: 'Xe đẩy và người đi chung lối, có nguy cơ va chạm.', proposal: 'Sơn vạch vàng phân làn lối đi.', estimated_saving: 0, created_at: daysAgo(1), submitted_at: daysAgo(1) });
-  ap(7, 4, 'LEADER', 'PENDING', null, null, daysAgo(1), null);
-
-  idea(5, { title: 'Thay bóng đèn LED khu kiểm hàng', category_id: 3, submitter_id: 2, status: 'PENDING_IE', kaizen_type: 'MAJOR',
-    problem: 'Đèn huỳnh quang tốn điện và thiếu sáng.', proposal: 'Thay 40 bóng LED 18W.', estimated_saving: 24000000, created_at: daysAgo(3), submitted_at: daysAgo(3) });
-  ap(8, 5, 'LEADER', 'APPROVED', 3, null, daysAgo(3), daysAgo(2, 12));
-  ap(9, 5, 'IE', 'PENDING', null, null, daysAgo(2, 12), null);
-
-  idea(6, { title: 'Dùng thùng nhựa thay bao tải', category_id: 6, submitter_id: 2, status: 'REJECTED',
-    problem: 'Bao tải dễ rách.', proposal: 'Dùng thùng nhựa.', estimated_saving: 0, created_at: daysAgo(15), submitted_at: daysAgo(15) });
-  ap(10, 6, 'LEADER', 'REJECTED', 3, 'Trùng với dự án 5S của xưởng đã triển khai', daysAgo(15), daysAgo(14, 20));
-
-  const colors = ['#5b7f73', '#7d6a55', '#4e6a8a'];
-  [[1, 1, 'BEFORE'], [2, 1, 'AFTER'], [3, 2, 'BEFORE'], [4, 2, 'AFTER'], [5, 3, 'BEFORE'], [6, 4, 'BEFORE'], [7, 5, 'BEFORE']]
-    .forEach(([id, idea_id, phase], i) => db.attachments.push({ id, idea_id, phase, file_name: `anh-${id}.svg`, content_type: 'image/svg+xml',
-      size_bytes: 1000, data: PIXEL(colors[i % 3]), created_at: daysAgo(5) }));
+  const lineOf = (uid) => users.find((u) => u.id === uid).line_id || 1;
+  const wsOf = (line) => db.lines.find((l) => l.id === line).workshop_id;
+  const colors = ['#5b7f73', '#7d6a55', '#4e6a8a', '#8a5a5a', '#5a6f8a'];
+  // [title, problem, proposal, category, wastes, tool, saving, submitter, status, type, ageDays, inv, annual]
+  const T = [
+    ['Gắn nam châm giữ kéo tại bàn may', 'Kéo thường rơi xuống sàn, mất 5–10 giây tìm mỗi lần, khoảng 40 lần mỗi ca.', 'Gắn dải nam châm cạnh bàn để giữ kéo cố định.', 5, ['MOTION'], '5S', 6e6, 2, 'COMPLETED', 'QUICK_WIN', 290],
+    ['Băng tải cấp bán thành phẩm tự động', 'Công nhân phải đi lấy bán thành phẩm, mất khoảng 40 phút mỗi ca.', 'Lắp băng tải mini nối khu cắt và Chuyền 02.', 3, ['TRANSPORT', 'WAITING'], 'KANBAN', 120e6, 7, 'COMPLETED', 'MAJOR', 250, 30e6, 90e6],
+    ['Đồ gá định vị túi áo', 'Tỷ lệ lỗi lệch túi 3,2% phải tháo ra may lại.', 'Làm đồ gá mica định vị túi, chống đặt sai.', 2, ['DEFECTS'], 'POKA_YOKE', 45e6, 2, 'IMPLEMENTING', 'MAJOR', 12],
+    ['Sơn vạch phân làn lối đi xe đẩy', 'Xe đẩy và người đi chung lối, đã có 2 lần suýt va chạm trong tháng.', 'Sơn vạch vàng phân làn, gắn gương cầu tại góc khuất.', 1, ['MOTION'], 'VISUAL', 0, 7, 'PENDING_LEADER', null, 1],
+    ['Thay đèn LED khu kiểm hàng', 'Đèn huỳnh quang tốn điện, thiếu sáng làm sót lỗi màu.', 'Thay 40 bóng LED 18W, đặt cảm biến tự tắt giờ nghỉ.', 3, ['DEFECTS'], 'OTHER', 24e6, 2, 'PENDING_IE', 'MAJOR', 3],
+    ['Dùng thùng nhựa thay bao tải chứa phụ liệu', 'Bao tải dễ rách, phụ liệu rơi vãi.', 'Chuyển sang thùng nhựa có nắp.', 6, ['INVENTORY'], '5S', 0, 2, 'REJECTED', null, 30],
+    ['Bảng Kanban cấp chỉ cho chuyền', 'Chuyền dừng trung bình 20 phút mỗi ngày vì hết chỉ.', 'Treo thẻ Kanban 2 thùng, kho cấp khi thẻ được rút.', 4, ['WAITING', 'INVENTORY'], 'KANBAN', 80e6, 9, 'COMPLETED', 'MAJOR', 200, 8e6, 72e6],
+    ['Chuẩn hóa thao tác may cổ áo', 'Mỗi công nhân may cổ một kiểu, thời gian chênh lệch 35%.', 'Quay video thao tác chuẩn, dán bảng hướng dẫn tại máy.', 4, ['OVERPROCESSING', 'SKILLS'], 'STANDARD_WORK', 50e6, 3 + 8, 'COMPLETED', 'MAJOR', 160, 3e6, 55e6],
+    ['Kệ dụng cụ có hình bóng (shadow board)', 'Mất thời gian tìm tua vít, kìm khi chỉnh máy.', 'Làm bảng treo dụng cụ có in hình bóng từng món.', 5, ['MOTION'], '5S', 4e6, 4 + 5, 'COMPLETED', 'QUICK_WIN', 140],
+    ['Cảm biến dừng máy khi đứt chỉ', 'Đứt chỉ không phát hiện, may hỏng cả đường dài.', 'Gắn cảm biến đứt chỉ, máy tự dừng và bật đèn Andon.', 2, ['DEFECTS'], 'JIDOKA', 95e6, 10, 'COMPLETED', 'MAJOR', 110, 40e6, 110e6],
+    ['Giảm thời gian chuyển mã hàng bàn cắt', 'Chuyển mã mất 45 phút do tìm rập và chỉnh máy.', 'Chuẩn bị rập trước, dùng xe đẩy chuyên dụng, kẹp nhanh.', 4, ['WAITING'], 'SMED', 150e6, 8, 'PENDING_FINANCE', 'MAJOR', 60],
+    ['Tấm chắn an toàn cho máy cắt vòng', 'Tay công nhân gần lưỡi cắt khi đẩy vải.', 'Lắp tấm chắn mica và nút dừng khẩn cấp.', 1, ['DEFECTS'], 'POKA_YOKE', 0, 10, 'COMPLETED', 'QUICK_WIN', 95],
+    ['Cắt theo đơn hàng thay vì cắt dồn', 'Cắt dồn cả tuần, bán thành phẩm tồn chất đống, dễ lẫn size.', 'Cắt theo nhịp chuyền mỗi 2 giờ.', 3, ['OVERPRODUCTION', 'INVENTORY'], 'KANBAN', 60e6, 8, 'IMPLEMENTING', 'MAJOR', 25],
+    ['Bỏ bước kiểm tra trùng tại cuối chuyền', 'Hàng được kiểm 2 lần cùng tiêu chí ở chuyền và QC.', 'Gộp về một điểm kiểm, chuẩn hóa checklist.', 2, ['OVERPROCESSING'], 'STANDARD_WORK', 30e6, 12, 'PENDING_LEADER', null, 2],
+    ['Lịch vệ sinh máy hằng ngày 5 phút', 'Máy bám bụi vải, hỏng dầu, dừng máy đột xuất.', 'Lập checklist TPM 5 phút đầu ca cho người vận hành.', 3, ['WAITING', 'DEFECTS'], 'TPM', 35e6, 4 + 5, 'QUICK_WIN', 'QUICK_WIN', 5],
+    ['Hộp đựng nhãn chia ngăn theo size', 'Nhãn size để chung, gắn nhầm size 0,8%.', 'Hộp chia ngăn có màu riêng cho từng size.', 2, ['DEFECTS', 'MOTION'], 'POKA_YOKE', 12e6, 12, 'COMPLETED', 'QUICK_WIN', 45],
+    ['Đào tạo chéo công đoạn cho công nhân', 'Khi có người nghỉ, chuyền thiếu người làm công đoạn khó.', 'Ma trận kỹ năng và lịch đào tạo chéo mỗi tháng.', 4, ['SKILLS'], 'STANDARD_WORK', 40e6, 3, 'PENDING_IE', 'MAJOR', 4],
+    ['Di dời kho phụ liệu gần chuyền', 'Kho phụ liệu cách chuyền 80 mét, đi lại 30 lượt mỗi ngày.', 'Bố trí kệ phụ liệu dùng hằng ngày ngay đầu chuyền.', 4, ['TRANSPORT', 'MOTION'], '5S', 18e6, 11 + 1, 'REVISION_REQUESTED', null, 6],
+    ['Bàn đứng điều chỉnh chiều cao khu ủi', 'Công nhân khu ủi đau lưng, năng suất giảm cuối ca.', 'Thay bàn ủi có chỉnh chiều cao theo người.', 1, ['MOTION'], 'OTHER', 0, 9, 'COMPLETED', 'QUICK_WIN', 75],
+    ['Bảng hiệu suất theo giờ tại chuyền', 'Không biết chuyền đang chậm so với kế hoạch cho đến cuối ca.', 'Bảng trắng ghi sản lượng mỗi giờ, đánh dấu đỏ khi chậm.', 4, ['WAITING'], 'VISUAL', 25e6, 2, 'COMPLETED', 'QUICK_WIN', 20],
+    ['Tái sử dụng vải vụn làm giẻ lau máy', 'Mua giẻ lau 2 triệu mỗi tháng trong khi vải vụn bị bỏ.', 'Cắt vải vụn làm giẻ lau, thu gom theo thùng màu.', 3, ['INVENTORY'], '5S', 24e6, 7, 'COMPLETED', 'QUICK_WIN', 10],
+    ['Ý tưởng: lắp máy lọc nước khu nghỉ', 'Công nhân phải ra ngoài mua nước.', 'Lắp máy lọc nước tại khu nghỉ ca.', 6, [], null, 0, 2, 'DRAFT', null, 0],
+  ];
+  T.forEach(([title, problem, proposal, category_id, waste_types, lean_tool, saving, submitter, status, type, age, inv, annual]) => {
+    const id = ++db.seq.idea, line_id = lineOf(submitter), workshop_id = wsOf(line_id);
+    const at = (d, h = 0) => daysAgo(Math.max(0, age - d), h);
+    const leader = workshop_id === 1 ? 3 : 11;
+    const i = { id, code: `KZ-2026-${String(++db.seq.code).padStart(6, '0')}`, title, problem, proposal, expected_benefit: null, category_id, submitter_id: submitter,
+      factory_id: 1, workshop_id, line_id, kaizen_type: type, status, assignee_id: null, estimated_saving: saving, waste_types, lean_tool,
+      submitted_at: status === 'DRAFT' ? null : at(0), completed_at: null, created_at: at(0), updated_at: at(0) };
+    db.ideas.push(i);
+    const ap = (level, st, by, d, comment = null) => db.approvals.push({ id: ++db.seq.ap, idea_id: id, level, approver_role: level, workshop_id: level === 'LEADER' ? workshop_id : null,
+      status: st, acted_by: st === 'PENDING' ? null : by, comment, created_at: at(d, 0), acted_at: st === 'PENDING' ? null : at(d, -6 - (id % 5) * 4) });
+    if (status === 'DRAFT') return;
+    if (status === 'PENDING_LEADER') ap('LEADER', 'PENDING', null, 0);
+    else if (status === 'REVISION_REQUESTED') ap('LEADER', 'REVISION', leader, 0, 'Bổ sung số lượt đi lại thực tế và ảnh mặt bằng kho');
+    else if (status === 'REJECTED') ap('LEADER', 'REJECTED', leader, 0, 'Trùng với dự án 5S của xưởng đã triển khai tháng trước');
+    else ap('LEADER', 'APPROVED', leader, 0, type === 'QUICK_WIN' ? 'Làm ngay tại chuyền' : 'Chuyển Ban Kaizen thẩm định');
+    if (type === 'QUICK_WIN') i.assignee_id = submitter;
+    if (type === 'MAJOR' && status !== 'PENDING_LEADER') {
+      if (status === 'PENDING_IE') ap('IE', 'PENDING', null, 1);
+      else {
+        ap('IE', 'APPROVED', 4, 1, 'Khả thi, IE theo dõi triển khai'); i.assignee_id = 4;
+        const tasks = [['Khảo sát hiện trạng, đo thời gian', 'DONE'], ['Thiết kế giải pháp', 'DONE'], ['Thi công / lắp đặt', status === 'IMPLEMENTING' ? 'IN_PROGRESS' : 'DONE'], ['Đào tạo và chuẩn hóa', status === 'IMPLEMENTING' ? 'TODO' : 'DONE']];
+        tasks.forEach(([t, st], k) => db.tasks.push({ id: ++db.seq.task, idea_id: id, title: t, status: st, assignee_id: k === 3 ? leader : 4, due_date: null, position: k + 1 }));
+        db.financials.push({ idea_id: id, investment_cost: inv || Math.round(saving * 0.15), annual_saving: annual || saving, currency: 'VND', verified: status === 'COMPLETED', verified_at: status === 'COMPLETED' ? at(age * 0.8) : null });
+        if (status === 'PENDING_FINANCE') ap('FINANCE', 'PENDING', null, age * 0.7);
+        if (status === 'COMPLETED') ap('FINANCE', 'APPROVED', 5, age * 0.7, 'Đã đối chiếu hóa đơn và sản lượng 4 tuần');
+      }
+    }
+    if (status === 'COMPLETED') {
+      i.completed_at = at(type === 'MAJOR' ? age * 0.8 : 2);
+      const fin = db.financials.find((f) => f.idea_id === id);
+      db.rewards.push({ id: ++db.seq.rw, idea_id: id, user_id: submitter, points: type === 'MAJOR' ? 50 : 10, amount: fin ? Math.round(fin.annual_saving * 0.01) : 0,
+        reason: type === 'MAJOR' ? 'MAJOR_PROJECT_COMPLETED' : 'QUICK_WIN_COMPLETED', status: 'GRANTED', created_at: i.completed_at });
+    }
+    db.attachments.push({ id: ++db.seq.att, idea_id: id, phase: 'BEFORE', file_name: `before-${id}.svg`, content_type: 'image/svg+xml', size_bytes: 1000, data: PIXEL(colors[id % colors.length], 'TRƯỚC'), created_at: at(0) });
+    if (status === 'COMPLETED' || status === 'PENDING_FINANCE') db.attachments.push({ id: ++db.seq.att, idea_id: id, phase: 'AFTER', file_name: `after-${id}.svg`, content_type: 'image/svg+xml', size_bytes: 1000, data: PIXEL('#2e7d5b', 'SAU'), created_at: at(2) });
+    [3, 6, 7, 9, 12].filter((u) => (u + id) % 3 === 0).forEach((u) => db.likes.push({ idea_id: id, user_id: u }));
+  });
+  const cm = (idea_id, user_id, body, d) => db.comments.push({ id: ++db.seq.cm, idea_id, user_id, body, created_at: daysAgo(d) });
+  cm(2, 3, 'Ý tưởng rất hay, đề nghị nhân rộng sang Chuyền 01.', 240);
+  cm(2, 6, 'Ban Giám đốc đánh giá cao. Tiết kiệm vượt kỳ vọng.', 195);
+  cm(3, 4, 'Mẫu thử mica đầu tiên đã xong, đang chạy thử 3 ngày.', 6);
+  cm(3, 2, 'Tôi có thể hỗ trợ đào tạo các bạn chuyền 01.', 5);
+  cm(11, 5, 'Cần bảng chấm công chuyển mã 4 tuần để đối chiếu.', 8);
+  cm(4, 9, 'Góc kho phía Đông cũng nên sơn vạch.', 0.5);
   return db;
 }
 
@@ -150,7 +172,8 @@ function upsertFin(id, inv, sav, verify) {
 function listRow(i) {
   const thumb = db.attachments.find((a) => a.idea_id === i.id && a.content_type.startsWith('image/'));
   return { ...i, category: db.categories.find((c) => c.id === i.category_id)?.name, workshop: db.workshops.find((w) => w.id === i.workshop_id)?.name,
-    line: db.lines.find((l) => l.id === i.line_id)?.name ?? null, submitter: nameOf(i.submitter_id), assignee: nameOf(i.assignee_id), thumb_id: thumb?.id ?? null };
+    line: db.lines.find((l) => l.id === i.line_id)?.name ?? null, submitter: nameOf(i.submitter_id), assignee: nameOf(i.assignee_id), thumb_id: thumb?.id ?? null,
+    like_count: db.likes.filter((l) => l.idea_id === i.id).length, comment_count: db.comments.filter((x) => x.idea_id === i.id).length };
 }
 
 function pendingFor(c) {
@@ -183,8 +206,9 @@ async function handle(method, path, body, c) {
       return { ...l, workshop_name: db.workshops.find((w) => w.id === l.workshop_id).name };
     }
     case 'GET /kaizens': {
-      const st = q.get('status');
-      const items = db.ideas.filter((i) => canView(c, i) && (!st || st.split(',').includes(i.status)))
+      const st = q.get('status'), w = q.get('waste'), ty = q.get('type'), kw = (q.get('q') || '').toLowerCase(), mine = q.get('mine') === 'true';
+      const items = db.ideas.filter((i) => canView(c, i) && (!st || st.split(',').includes(i.status)) && (!w || (i.waste_types || []).includes(w))
+        && (!ty || i.kaizen_type === ty) && (!mine || i.submitter_id === c.id) && (!kw || (i.title + ' ' + i.code).toLowerCase().includes(kw)))
         .sort((a, b) => b.created_at.localeCompare(a.created_at)).map(listRow);
       return { items, page: 1, page_size: 50, total: items.length };
     }
@@ -198,7 +222,8 @@ async function handle(method, path, body, c) {
       const i = { id: ++db.seq.idea, code: `KZ-2026-${String(++db.seq.code).padStart(6, '0')}`, client_uuid: cu, title, problem, proposal,
         expected_benefit: field('expected_benefit') || null, category_id: +field('category_id'), submitter_id: c.id, factory_id: 1,
         workshop_id: line.workshop_id, line_id: line.id, kaizen_type: null, status: 'DRAFT', assignee_id: null,
-        estimated_saving: +field('estimated_saving') || 0, submitted_at: null, completed_at: null, created_at: now(), updated_at: now() };
+        estimated_saving: +field('estimated_saving') || 0, lean_tool: field('lean_tool') || null,
+        waste_types: String(field('waste_types') || '').split(',').filter(Boolean), submitted_at: null, completed_at: null, created_at: now(), updated_at: now() };
       db.ideas.push(i);
       if (body instanceof FormData) await addFiles(i.id, c.id, 'BEFORE', body.getAll('before'));
       if (String(field('submit')) === 'true') submit(i);
@@ -211,7 +236,9 @@ async function handle(method, path, body, c) {
         approvals: db.approvals.filter((a) => a.idea_id === i.id).map((a) => ({ ...a, acted_by: nameOf(a.acted_by) })),
         tasks: db.tasks.filter((t) => t.idea_id === i.id).sort((a, b) => a.position - b.position).map((t) => ({ ...t, assignee: nameOf(t.assignee_id) })),
         rewards: db.rewards.filter((x) => x.idea_id === i.id).map((x) => ({ ...x, full_name: nameOf(x.user_id) })),
-        financials: finView(db.financials.find((f) => f.idea_id === i.id)) || null };
+        financials: finView(db.financials.find((f) => f.idea_id === i.id)) || null,
+        liked: db.likes.some((l) => l.idea_id === i.id && l.user_id === c.id),
+        comments: db.comments.filter((x) => x.idea_id === i.id).map((x) => ({ ...x, full_name: nameOf(x.user_id), role: user(x.user_id)?.role })) };
     }
     case 'POST /kaizens/:id/submit': {
       const i = ideaOf(id);
@@ -248,7 +275,8 @@ async function handle(method, path, body, c) {
       return pendingFor(c).map((a) => { const i = listRow(ideaOf(a.idea_id));
         return { approval_id: a.id, level: a.level, pending_since: a.created_at, idea_id: i.id, code: i.code, title: i.title, status: i.status,
           estimated_saving: i.estimated_saving, workshop: i.workshop, submitter: i.submitter, category: i.category,
-          waiting_hours: Math.round((Date.now() - new Date(a.created_at)) / 36e5) }; });
+          waiting_hours: Math.round((Date.now() - new Date(a.created_at)) / 36e5), problem: i.problem, proposal: i.proposal,
+          waste_types: i.waste_types, lean_tool: i.lean_tool, thumb_id: i.thumb_id }; });
     case 'POST /approvals/:id/action': {
       const a = db.approvals.find((x) => x.id === id) || err(404, 'approval not found');
       if (a.status !== 'PENDING') err(409, 'Đã được xử lý');
@@ -282,14 +310,77 @@ async function handle(method, path, body, c) {
       const t = db.tasks.find((x) => x.id === id) || err(404, 'task not found');
       t.status = String(body.status).toUpperCase(); return { status: t.status };
     }
+    case 'POST /kaizens/:id/comments': {
+      const i = ideaOf(id);
+      if (!canView(c, i)) err(403, 'forbidden');
+      if (!String(body.body || '').trim()) err(400, 'Nhập nội dung bình luận');
+      db.comments.push({ id: ++db.seq.cm, idea_id: i.id, user_id: c.id, body: String(body.body).trim().slice(0, 2000), created_at: now() });
+      return { id: db.seq.cm };
+    }
+    case 'POST /kaizens/:id/like': {
+      const i = ideaOf(id), k = db.likes.findIndex((l) => l.idea_id === i.id && l.user_id === c.id);
+      if (k >= 0) db.likes.splice(k, 1); else db.likes.push({ idea_id: i.id, user_id: c.id });
+      return { liked: k < 0, like_count: db.likes.filter((l) => l.idea_id === i.id).length };
+    }
+    case 'GET /activity': {
+      const vis = (iid) => canView(c, ideaOf(iid));
+      const ev = [];
+      db.ideas.filter((i) => i.submitted_at && canView(c, i)).forEach((i) => {
+        ev.push({ at: i.submitted_at, kind: 'SUBMITTED', idea_id: i.id, code: i.code, title: i.title, actor: nameOf(i.submitter_id), detail: null });
+        if (i.completed_at) ev.push({ at: i.completed_at, kind: 'COMPLETED', idea_id: i.id, code: i.code, title: i.title, actor: nameOf(i.submitter_id), detail: null });
+      });
+      db.approvals.filter((a) => a.acted_at && vis(a.idea_id)).forEach((a) => { const i = ideaOf(a.idea_id);
+        ev.push({ at: a.acted_at, kind: a.level + '_' + a.status, idea_id: i.id, code: i.code, title: i.title, actor: nameOf(a.acted_by), detail: a.comment }); });
+      db.comments.filter((x) => vis(x.idea_id)).forEach((x) => { const i = ideaOf(x.idea_id);
+        ev.push({ at: x.created_at, kind: 'COMMENT', idea_id: i.id, code: i.code, title: i.title, actor: nameOf(x.user_id), detail: x.body.slice(0, 140) }); });
+      return ev.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30);
+    }
+    case 'GET /reports/trend': {
+      const v = db.ideas.filter((i) => canView(c, i)), out = [];
+      for (let k = 11; k >= 0; k--) {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k);
+        const m = d.toISOString().slice(0, 7);
+        out.push({ month: m, submitted: v.filter((i) => i.submitted_at?.slice(0, 7) === m).length, completed: v.filter((i) => i.completed_at?.slice(0, 7) === m).length });
+      }
+      return out;
+    }
+    case 'GET /reports/wastes': {
+      const from = q.get('from'), g = {};
+      db.ideas.filter((i) => canView(c, i) && i.status !== 'DRAFT' && (!from || i.created_at >= from)).forEach((i) => (i.waste_types || []).forEach((w) => {
+        g[w] ??= { waste: w, total: 0, completed: 0 }; g[w].total++; if (i.status === 'COMPLETED') g[w].completed++; }));
+      return Object.values(g).sort((a, b) => b.total - a.total);
+    }
+    case 'GET /reports/leaderboard':
+      return db.users.filter((u) => u.role !== 'ADMIN').map((u) => {
+        const rw = db.rewards.filter((x) => x.user_id === u.id);
+        return { user_id: u.id, full_name: u.full_name, role: u.role, workshop: db.workshops.find((w) => w.id === u.workshop_id)?.name ?? null,
+          points: rw.reduce((s, x) => s + x.points, 0), amount: rw.reduce((s, x) => s + x.amount, 0),
+          ideas: db.ideas.filter((i) => i.submitter_id === u.id && i.status !== 'DRAFT').length, completed: db.ideas.filter((i) => i.submitter_id === u.id && i.status === 'COMPLETED').length };
+      }).sort((a, b) => b.points - a.points || b.ideas - a.ideas);
+    case 'GET /admin/users':
+      if (c.role !== 'ADMIN') err(403, 'forbidden');
+      return db.users;
+    case 'POST /admin/users': {
+      if (c.role !== 'ADMIN') err(403, 'forbidden');
+      if (!body.employee_code || !body.full_name) err(400, 'Cần mã nhân viên và họ tên');
+      if (db.users.some((u) => u.employee_code === body.employee_code)) err(400, 'Mã nhân viên đã tồn tại');
+      db.users.push({ id: ++db.seq.user, employee_code: body.employee_code, full_name: body.full_name, role: body.role, factory_id: 1, workshop_id: body.workshop_id || null, line_id: null, is_active: true });
+      return { id: db.seq.user };
+    }
+    case 'POST /admin/lines': {
+      if (c.role !== 'ADMIN') err(403, 'forbidden');
+      if (!body.code || !body.name) err(400, 'Cần mã và tên dây chuyền');
+      db.lines.push({ id: ++db.seq.line, workshop_id: +body.parent_id, code: body.code, name: body.name, qr_token: 'demo-line-' + Math.random().toString(36).slice(2, 8) });
+      return { id: db.seq.line };
+    }
     case 'GET /reports/summary': {
-      const v = db.ideas.filter((i) => canView(c, i)), sub = v.filter((i) => i.status !== 'DRAFT');
+      const from = q.get('from'), v = db.ideas.filter((i) => canView(c, i) && (!from || i.created_at >= from)), sub = v.filter((i) => i.status !== 'DRAFT');
       const cnt = (f) => v.filter(f).length, done = cnt((i) => i.status === 'COMPLETED');
       const active = cnt((i) => !['DRAFT', 'REJECTED'].includes(i.status));
       const fin = db.financials.filter((f) => f.verified && v.some((i) => i.id === f.idea_id));
       const leaderHrs = db.approvals.filter((a) => a.level === 'LEADER' && a.acted_at).map((a) => (new Date(a.acted_at) - new Date(a.created_at)) / 36e5);
       const byCat = {}; sub.forEach((i) => { const n = listRow(i).category; byCat[n] = (byCat[n] || 0) + 1; });
-      const top = {}; db.rewards.forEach((x) => { const u = user(x.user_id); const k = u.full_name;
+      const top = {}; db.rewards.filter((x) => v.some((i) => i.id === x.idea_id)).forEach((x) => { const u = user(x.user_id); const k = u.full_name;
         top[k] ??= { full_name: k, workshop: db.workshops.find((w) => w.id === u.workshop_id)?.name, points: 0, ideas: 0 }; top[k].points += x.points; top[k].ideas++; });
       return { total_ideas: sub.length, completed: done, rejected: cnt((i) => i.status === 'REJECTED'),
         pending_approval: cnt((i) => i.status.startsWith('PENDING')), in_progress: cnt((i) => ['QUICK_WIN', 'IMPLEMENTING'].includes(i.status)),
@@ -299,12 +390,14 @@ async function handle(method, path, body, c) {
         verified_saving: fin.reduce((s, f) => s + f.annual_saving, 0), verified_investment: fin.reduce((s, f) => s + f.investment_cost, 0),
         avg_leader_response_hours: leaderHrs.length ? Math.round(leaderHrs.reduce((a, b) => a + b, 0) / leaderHrs.length * 10) / 10 : 0,
         participants: new Set(sub.map((i) => i.submitter_id)).size,
+        by_status: Object.entries(v.reduce((g, i) => ((g[i.status] = (g[i.status] || 0) + 1), g), {})).map(([status, total]) => ({ status, total })),
         by_category: Object.entries(byCat).map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total),
         top_contributors: Object.values(top).sort((a, b) => b.points - a.points) };
     }
     case 'GET /reports/roi': {
       const g = {};
-      db.ideas.filter((i) => i.status === 'COMPLETED').forEach((i) => {
+      const from = q.get('from');
+      db.ideas.filter((i) => i.status === 'COMPLETED' && canView(c, i) && (!from || i.completed_at >= from)).forEach((i) => {
         const f = db.financials.find((x) => x.idea_id === i.id && x.verified); if (!f) return;
         const month = i.completed_at.slice(0, 7), w = listRow(i).workshop, k = month + w;
         g[k] ??= { month, workshop: w, projects: 0, investment: 0, annual_saving: 0 };

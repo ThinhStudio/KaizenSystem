@@ -64,6 +64,13 @@ func (s *Server) Routes() http.Handler {
 	// D. reports
 	p.HandleFunc("GET /api/v1/reports/summary", s.reportSummary)
 	p.HandleFunc("GET /api/v1/reports/roi", s.reportROI)
+	p.HandleFunc("GET /api/v1/reports/trend", s.reportTrend)
+	p.HandleFunc("GET /api/v1/reports/wastes", s.reportWastes)
+	p.HandleFunc("GET /api/v1/reports/leaderboard", s.leaderboard)
+	p.HandleFunc("GET /api/v1/reports/export.csv", s.exportCSV)
+	p.HandleFunc("GET /api/v1/activity", s.activity)
+	p.HandleFunc("POST /api/v1/kaizens/{id}/comments", s.addComment)
+	p.HandleFunc("POST /api/v1/kaizens/{id}/like", s.toggleLike)
 
 	// admin
 	p.HandleFunc("GET /api/v1/admin/users", s.adminListUsers)

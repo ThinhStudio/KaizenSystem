@@ -66,8 +66,15 @@ type kaizenInput struct {
 	LineID          *int64   `json:"line_id"`
 	LineQR          string   `json:"line_qr"`
 	EstimatedSaving float64  `json:"estimated_saving"`
+	WasteTypes      []string `json:"waste_types"`
+	LeanTool        string   `json:"lean_tool"`
 	Submit          bool     `json:"submit"`
 }
+
+var validWastes = map[string]bool{"DEFECTS": true, "OVERPRODUCTION": true, "WAITING": true, "SKILLS": true,
+	"TRANSPORT": true, "INVENTORY": true, "MOTION": true, "OVERPROCESSING": true}
+var validTools = map[string]bool{"KAIZEN": true, "5S": true, "POKA_YOKE": true, "KANBAN": true, "JIDOKA": true,
+	"SMED": true, "STANDARD_WORK": true, "VISUAL": true, "TPM": true, "OTHER": true}
 
 func (in *kaizenInput) validate() error {
 	in.Title, in.Problem, in.Proposal = strings.TrimSpace(in.Title), strings.TrimSpace(in.Problem), strings.TrimSpace(in.Proposal)
@@ -82,7 +89,23 @@ func (in *kaizenInput) validate() error {
 		return fmt.Errorf("category_id required")
 	case in.EstimatedSaving < 0:
 		return fmt.Errorf("estimated_saving must be >= 0")
+	case in.LeanTool != "" && !validTools[in.LeanTool]:
+		return fmt.Errorf("invalid lean_tool")
 	}
+	seen := map[string]bool{}
+	clean := []string{}
+	for _, w := range in.WasteTypes {
+		w = strings.ToUpper(strings.TrimSpace(w))
+		if w == "" || seen[w] {
+			continue
+		}
+		if !validWastes[w] {
+			return fmt.Errorf("invalid waste type %q", w)
+		}
+		seen[w] = true
+		clean = append(clean, w)
+	}
+	in.WasteTypes = clean
 	return nil
 }
 
@@ -98,6 +121,10 @@ func formInput(r *http.Request) kaizenInput {
 		in.LineID = &v
 	}
 	in.EstimatedSaving, _ = strconv.ParseFloat(f("estimated_saving"), 64)
+	for _, v := range r.Form["waste_types"] {
+		in.WasteTypes = append(in.WasteTypes, strings.Split(v, ",")...)
+	}
+	in.LeanTool = f("lean_tool")
 	return in
 }
 
@@ -168,12 +195,12 @@ func (s *Server) createKaizen(w http.ResponseWriter, r *http.Request) {
 	var id int64
 	var code string
 	err = tx.QueryRow(ctx, `INSERT INTO kaizen_ideas (code, client_uuid, title, problem, proposal, expected_benefit,
-		category_id, submitter_id, factory_id, workshop_id, line_id, estimated_saving)
+		category_id, submitter_id, factory_id, workshop_id, line_id, estimated_saving, waste_types, lean_tool)
 		VALUES ('KZ-' || to_char(now(),'YYYY') || '-' || lpad(nextval('kaizen_code_seq')::text, 6, '0'),
-		        $1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,$10,$11)
+		        $1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,$10,$11,$12,NULLIF($13,''))
 		RETURNING id, code`,
 		in.ClientUUID, in.Title, in.Problem, in.Proposal, in.ExpectedBenefit, in.CategoryID, c.UserID,
-		*factoryID, *workshopID, lineID, in.EstimatedSaving).Scan(&id, &code)
+		*factoryID, *workshopID, lineID, in.EstimatedSaving, in.WasteTypes, in.LeanTool).Scan(&id, &code)
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "cannot create kaizen: "+err.Error())
 		return
@@ -256,6 +283,12 @@ func (s *Server) listKaizens(w http.ResponseWriter, r *http.Request) {
 	if q.Get("mine") == "true" {
 		where = append(where, "i.submitter_id = "+add(c.UserID))
 	}
+	if v := strings.ToUpper(q.Get("waste")); validWastes[v] {
+		where = append(where, add(v)+" = ANY(i.waste_types)")
+	}
+	if v := q.Get("type"); v == "QUICK_WIN" || v == "MAJOR" {
+		where = append(where, "i.kaizen_type = "+add(v))
+	}
 	if v := strings.TrimSpace(q.Get("q")); v != "" {
 		p := add("%" + v + "%")
 		where = append(where, "(i.title ILIKE "+p+" OR i.code ILIKE "+p+")")
@@ -278,6 +311,9 @@ func (s *Server) listKaizens(w http.ResponseWriter, r *http.Request) {
 	lim, off := add(size), add((page-1)*size)
 	items, err := queryMaps(r.Context(), s.DB, `SELECT i.id, i.code, i.title, i.status, i.kaizen_type,
 		i.estimated_saving::float8 AS estimated_saving, i.created_at, i.submitted_at, i.completed_at,
+		i.waste_types, i.lean_tool, i.category_id, i.submitter_id, i.assignee_id,
+		(SELECT count(*) FROM kaizen_likes k WHERE k.idea_id=i.id) AS like_count,
+		(SELECT count(*) FROM kaizen_comments k WHERE k.idea_id=i.id) AS comment_count,
 		c.name AS category, w.name AS workshop, l.name AS line, u.full_name AS submitter,
 		(SELECT a.id FROM kaizen_attachments a WHERE a.idea_id=i.id AND a.content_type LIKE 'image/%' ORDER BY a.id LIMIT 1) AS thumb_id
 		FROM kaizen_ideas i
@@ -317,10 +353,12 @@ func (s *Server) getKaizen(w http.ResponseWriter, r *http.Request) {
 		i.status, i.kaizen_type, i.estimated_saving::float8 AS estimated_saving, i.category_id, c.name AS category,
 		i.factory_id, i.workshop_id, w.name AS workshop, i.line_id, l.name AS line,
 		i.submitter_id, u.full_name AS submitter, i.assignee_id, a.full_name AS assignee,
-		i.submitted_at, i.completed_at, i.created_at, i.updated_at
+		i.submitted_at, i.completed_at, i.created_at, i.updated_at, i.waste_types, i.lean_tool,
+		(SELECT count(*) FROM kaizen_likes k WHERE k.idea_id=i.id) AS like_count,
+		EXISTS(SELECT 1 FROM kaizen_likes k WHERE k.idea_id=i.id AND k.user_id=$2) AS liked
 		FROM kaizen_ideas i JOIN kaizen_categories c ON c.id=i.category_id JOIN workshops w ON w.id=i.workshop_id
 		LEFT JOIN production_lines l ON l.id=i.line_id JOIN users u ON u.id=i.submitter_id
-		LEFT JOIN users a ON a.id=i.assignee_id WHERE i.id=$1`, id)
+		LEFT JOIN users a ON a.id=i.assignee_id WHERE i.id=$1`, id, c.UserID)
 	if err != nil {
 		internalErr(w, err)
 		return
@@ -333,6 +371,8 @@ func (s *Server) getKaizen(w http.ResponseWriter, r *http.Request) {
 			FROM kaizen_approvals ap LEFT JOIN users u ON u.id=ap.acted_by WHERE ap.idea_id=$1 ORDER BY ap.id`},
 		{"tasks", `SELECT t.id, t.title, t.description, t.status, t.due_date, t.position, t.assignee_id, u.full_name AS assignee
 			FROM kaizen_tasks t LEFT JOIN users u ON u.id=t.assignee_id WHERE t.idea_id=$1 ORDER BY t.position, t.id`},
+		{"comments", `SELECT cm.id, cm.body, cm.created_at, cm.user_id, u.full_name, u.role
+			FROM kaizen_comments cm JOIN users u ON u.id=cm.user_id WHERE cm.idea_id=$1 ORDER BY cm.id`},
 		{"rewards", `SELECT r.id, r.user_id, u.full_name, r.points, r.amount::float8 AS amount, r.reason, r.status, r.created_at
 			FROM kaizen_rewards r JOIN users u ON u.id=r.user_id WHERE r.idea_id=$1 ORDER BY r.id`},
 	}
@@ -395,8 +435,8 @@ func (s *Server) updateKaizen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := tx.Exec(ctx, `UPDATE kaizen_ideas SET title=$2, problem=$3, proposal=$4, expected_benefit=NULLIF($5,''),
-		category_id=$6, estimated_saving=$7, updated_at=now() WHERE id=$1`,
-		id, in.Title, in.Problem, in.Proposal, in.ExpectedBenefit, in.CategoryID, in.EstimatedSaving); err != nil {
+		category_id=$6, estimated_saving=$7, waste_types=$8, lean_tool=NULLIF($9,''), updated_at=now() WHERE id=$1`,
+		id, in.Title, in.Problem, in.Proposal, in.ExpectedBenefit, in.CategoryID, in.EstimatedSaving, in.WasteTypes, in.LeanTool); err != nil {
 		writeErr(w, http.StatusBadRequest, err.Error())
 		return
 	}

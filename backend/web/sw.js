@@ -1,6 +1,6 @@
 // Service worker: cache-first for app shell, network-first for API GETs.
-const SHELL = 'kaizen-shell-v2';
-const ASSETS = ['/', '/index.html', '/app.css', '/js/app.js', '/js/api.js', '/js/offline.js', '/js/mock.js', '/manifest.webmanifest', '/icons/icon.svg'];
+const SHELL = 'kaizen-shell-v3';
+const ASSETS = ['/', '/index.html', '/app.css', '/js/app.js', '/js/api.js', '/js/offline.js', '/js/mock.js', '/js/lean.js', '/js/charts.js', '/manifest.webmanifest', '/icons/icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

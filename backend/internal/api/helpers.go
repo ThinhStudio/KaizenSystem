@@ -88,9 +88,10 @@ func requireRole(w http.ResponseWriter, c *auth.Claims, roles ...string) bool {
 }
 
 // scopeSQL returns a WHERE fragment (with alias i.) limiting ideas to what the user may see.
-//   WORKER   -> own ideas
-//   LEADER   -> own workshop (+ own ideas)
-//   others   -> own factory (or everything when no factory assigned)
+//
+//	WORKER   -> own ideas
+//	LEADER   -> own workshop (+ own ideas)
+//	others   -> own factory (or everything when no factory assigned)
 func scopeSQL(c *auth.Claims, args *[]any) string {
 	add := func(v any) string { *args = append(*args, v); return "$" + strconv.Itoa(len(*args)) }
 	switch c.Role {

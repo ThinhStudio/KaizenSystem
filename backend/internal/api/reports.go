@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/csv"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -102,4 +104,96 @@ func (s *Server) reportROI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, rows)
+}
+
+// reportTrend: submitted vs completed per month for the last 12 months.
+func (s *Server) reportTrend(w http.ResponseWriter, r *http.Request) {
+	c := auth.FromContext(r.Context())
+	args := []any{}
+	cond := scopeSQL(c, &args)
+	rows, err := queryMaps(r.Context(), s.DB, `WITH m AS (
+		SELECT to_char(d, 'YYYY-MM') AS month FROM generate_series(date_trunc('month', now()) - interval '11 months', date_trunc('month', now()), interval '1 month') d)
+		SELECT m.month,
+		  (SELECT count(*) FROM kaizen_ideas i WHERE to_char(i.submitted_at,'YYYY-MM')=m.month AND `+cond+`) AS submitted,
+		  (SELECT count(*) FROM kaizen_ideas i WHERE to_char(i.completed_at,'YYYY-MM')=m.month AND `+cond+`) AS completed
+		FROM m ORDER BY m.month`, args...)
+	if err != nil {
+		internalErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+// reportWastes: number of submitted ideas tackling each of the 8 wastes.
+func (s *Server) reportWastes(w http.ResponseWriter, r *http.Request) {
+	c := auth.FromContext(r.Context())
+	cond, args := reportFilter(r, c, "i.created_at")
+	rows, err := queryMaps(r.Context(), s.DB, `SELECT w AS waste, count(*) AS total,
+		count(*) FILTER (WHERE i.status='COMPLETED') AS completed
+		FROM kaizen_ideas i, unnest(i.waste_types) w WHERE i.status<>'DRAFT' AND `+cond+` GROUP BY w ORDER BY total DESC`, args...)
+	if err != nil {
+		internalErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+// leaderboard: points per employee across the caller's factory (belt ranking is derived client-side).
+func (s *Server) leaderboard(w http.ResponseWriter, r *http.Request) {
+	c := auth.FromContext(r.Context())
+	args := []any{}
+	cond := "TRUE"
+	if c.FactoryID != nil {
+		args = append(args, *c.FactoryID)
+		cond = "u.factory_id = $1"
+	}
+	rows, err := queryMaps(r.Context(), s.DB, `SELECT u.id AS user_id, u.full_name, u.role, w.name AS workshop,
+		COALESCE(sum(rw.points),0)::int AS points, COALESCE(sum(rw.amount),0)::float8 AS amount,
+		(SELECT count(*) FROM kaizen_ideas i WHERE i.submitter_id=u.id AND i.status<>'DRAFT') AS ideas,
+		(SELECT count(*) FROM kaizen_ideas i WHERE i.submitter_id=u.id AND i.status='COMPLETED') AS completed
+		FROM users u LEFT JOIN workshops w ON w.id=u.workshop_id
+		LEFT JOIN kaizen_rewards rw ON rw.user_id=u.id AND rw.status<>'CANCELLED'
+		WHERE u.is_active AND u.role<>'ADMIN' AND `+cond+`
+		GROUP BY u.id, u.full_name, u.role, w.name ORDER BY points DESC, ideas DESC LIMIT 50`, args...)
+	if err != nil {
+		internalErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+// exportCSV: Excel-friendly CSV (UTF-8 BOM) of ideas in scope.
+func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
+	c := auth.FromContext(r.Context())
+	cond, args := reportFilter(r, c, "i.created_at")
+	rows, err := s.DB.Query(r.Context(), `SELECT i.code, i.title, i.status, COALESCE(i.kaizen_type,''), c.name, w.name,
+		u.full_name, array_to_string(i.waste_types, '|'), COALESCE(i.lean_tool,''), i.estimated_saving::float8,
+		COALESCE(f.investment_cost,0)::float8, COALESCE(f.annual_saving,0)::float8, COALESCE(f.verified,false),
+		to_char(i.created_at,'YYYY-MM-DD'), COALESCE(to_char(i.completed_at,'YYYY-MM-DD'),'')
+		FROM kaizen_ideas i JOIN kaizen_categories c ON c.id=i.category_id JOIN workshops w ON w.id=i.workshop_id
+		JOIN users u ON u.id=i.submitter_id LEFT JOIN kaizen_financials f ON f.idea_id=i.id
+		WHERE `+cond+` ORDER BY i.created_at DESC`, args...)
+	if err != nil {
+		internalErr(w, err)
+		return
+	}
+	defer rows.Close()
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="kaizen-export.csv"`)
+	cw := csv.NewWriter(w)
+	_, _ = w.Write([]byte("\xEF\xBB\xBF"))
+	_ = cw.Write([]string{"Mã", "Tiêu đề", "Trạng thái", "Loại", "Lĩnh vực", "Xưởng", "Người đề xuất", "Lãng phí", "Công cụ Lean",
+		"Ước tính tiết kiệm", "Chi phí đầu tư", "Tiết kiệm xác thực", "Đã xác thực", "Ngày tạo", "Ngày hoàn thành"})
+	for rows.Next() {
+		vals, err := rows.Values()
+		if err != nil {
+			return
+		}
+		rec := make([]string, len(vals))
+		for i, v := range vals {
+			rec[i] = fmt.Sprint(v)
+		}
+		_ = cw.Write(rec)
+	}
+	cw.Flush()
 }

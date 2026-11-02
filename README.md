@@ -2,11 +2,30 @@
 
 Hệ thống quản lý Kaizen & Sáng kiến cải tiến nhà máy — triển khai theo tài liệu [SADD](docs/SADD.md).
 
+![Tổng quan](docs/screenshot-home.png)
+
 - **Backend:** Go 1.26 (`net/http`, pgx) — REST API `/api/v1`, JWT + RBAC, workflow đa cấp, audit log.
 - **Database:** PostgreSQL 16 (7 bảng nghiệp vụ + danh mục nhà máy/xưởng/chuyền/người dùng, ROI tính bằng generated column).
 - **Frontend:** PWA (HTML/JS thuần, không cần build), offline-first với IndexedDB outbox + Service Worker, chụp ảnh bằng camera, QR theo chuyền.
 - **Storage:** Local file store (interface `storage.Store` sẵn sàng thay bằng MinIO/S3).
 - **Thông báo:** Telegram Bot và/hoặc webhook chung (Zalo OA bridge, n8n, Slack…).
+
+## Tính năng chính
+
+| Màn hình | Nội dung |
+|---|---|
+| Tổng quan | Lời chào theo ca, nguyên tắc Kaizen mỗi ngày, cấp đai cá nhân, KPI kèm sparkline, "Săn lãng phí tại Gemba", việc cần làm, dòng hoạt động |
+| Sáng kiến | Thẻ có ảnh, lọc theo trạng thái / 8 lãng phí / loại / của tôi, tìm kiếm, xuất Excel (CSV UTF-8) |
+| Bảng Kaizen | Kanban toàn cục theo chặng duyệt, nhìn ra điểm tắc nghẽn |
+| Đề xuất | Wizard 3 bước: vấn đề + chọn lãng phí → giải pháp + công cụ Lean → ảnh (kéo thả/camera) + xem lại; chạy offline |
+| Chi tiết | Thanh tiến trình vòng đời, so sánh Trước/Sau, Kanban triển khai, ROI, khen thưởng, lịch sử duyệt, thảo luận, ủng hộ |
+| Phê duyệt | Thẻ duyệt có ảnh, hiện trạng/đề xuất, đồng hồ SLA 48 giờ, Quick Win / Dự án lớn, nhập số liệu xác thực của Kế toán |
+| Phân tích & ROI | KPI, biểu đồ đề xuất/hoàn thành 12 tháng, tỷ lệ hoàn thành, lãng phí được tấn công, phễu chuyển đổi, ROI theo xưởng/tháng |
+| Bảng vàng | Bục vinh danh, xếp hạng, 5 cấp đai Kaizen (Trắng → Đen Bậc Thầy) theo điểm |
+| Học viện Lean | 10 nguyên tắc Kaizen, 8 lãng phí (DOWNTIME), công cụ Gemba / 3M / 5S / Poka-Yoke / Kanban / Jidoka / SMED / TPM…, lộ trình đai |
+| Quản trị | Người dùng, dây chuyền và liên kết QR |
+
+Giao diện có chế độ sáng/tối, tối ưu cho điện thoại (thanh điều hướng dưới, nút chụp ảnh ở giữa) và máy tính.
 
 ## Bản demo trực tuyến
 

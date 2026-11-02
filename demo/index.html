@@ -4,85 +4,507 @@
   <meta charset="utf-8">
   <meta name="claude:viewport-fit-sides" content="cover">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f6e56">
+    <meta name="description" content="Hệ thống quản lý Kaizen và sáng kiến cải tiến nhà máy">
   <title>Digital Kaizen Demo</title>
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9Ijk2IiBmaWxsPSIjMGY2ZTU2Ii8+PHRleHQgeD0iMjU2IiB5PSIzMzAiIGZvbnQtc2l6ZT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjcwMCI+5pS5PC90ZXh0Pjwvc3ZnPg==" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <style>
-:root { --pri:#0f6e56; --pri-fg:#ffffff; --bg:#f4f6f5; --card:#ffffff; --fg:#1d2420; --mut:#5d6a64; --bd:#dde3e0; --chip:#e8ecea; --col:#eef2f0;
-  --warn:#b54708; --warn-bg:#fef0c7; --err:#b42318; --err-bg:#fee4e2; --ok:#067647; --ok-bg:#dcfae6; --info:#175cd3; --info-bg:#d1e9ff; --toast:#1d2420; --toast-fg:#ffffff; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pri:#3fb994; --pri-fg:#06231b; --bg:#111715; --card:#1a2220; --fg:#e4ebe8; --mut:#9aa8a2; --bd:#2c3733; --chip:#26302d; --col:#161e1b;
-  --warn:#fdb022; --warn-bg:#3d2a0b; --err:#f97066; --err-bg:#3f1714; --ok:#47cd89; --ok-bg:#0f2d1f; --info:#84caff; --info-bg:#102a46; --toast:#e4ebe8; --toast-fg:#111715; color-scheme:dark; } }
-:root[data-theme="dark"] { --pri:#3fb994; --pri-fg:#06231b; --bg:#111715; --card:#1a2220; --fg:#e4ebe8; --mut:#9aa8a2; --bd:#2c3733; --chip:#26302d; --col:#161e1b;
-  --warn:#fdb022; --warn-bg:#3d2a0b; --err:#f97066; --err-bg:#3f1714; --ok:#47cd89; --ok-bg:#0f2d1f; --info:#84caff; --info-bg:#102a46; --toast:#e4ebe8; --toast-fg:#111715; color-scheme:dark; }
+/* Digital Kaizen — design system
+   Layout: dark "control room" sidebar + light working canvas; mobile gets a bottom tab bar with a central capture button.
+   Palette: forest green (kaizen growth) on cool-green neutrals, belt colors as identity accents only. */
+:root {
+  --bg: #f2f5f3; --surface: #ffffff; --surface-2: #f7f9f8; --ink: #13201a; --ink-2: #3b4a43; --muted: #66756e; --line: #dce4df; --line-2: #e9eeeb;
+  --brand: #17694a; --brand-strong: #0f4d36; --brand-soft: #e2f0e8; --brand-ink: #ffffff;
+  --side: #0f1c17; --side-2: #172822; --side-ink: #d6e3dc; --side-muted: #8aa197; --side-active: #224236;
+  --gold: #b07b00; --gold-soft: #fbf1d6;
+  --good: #067647; --good-bg: #dcf4e6; --warn: #a15c07; --warn-bg: #fdf0d3; --bad: #b42318; --bad-bg: #fde5e2; --info: #1d5fb8; --info-bg: #dde9fa;
+  --s1: #2a78d6; --s2: #eb6834; --seq: #17694a;
+  --shadow: 0 1px 2px rgba(16, 32, 26, .06), 0 4px 16px rgba(16, 32, 26, .05);
+  --f-ui: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 12px; --r-sm: 8px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1310; --surface: #121c18; --surface-2: #17231e; --ink: #e5eee9; --ink-2: #c3d0c9; --muted: #8fa199; --line: #24332c; --line-2: #1c2924;
+  --brand: #3fb489; --brand-strong: #6fd0aa; --brand-soft: #173329; --brand-ink: #062118;
+  --side: #08100d; --side-2: #0f1a16; --side-ink: #d6e3dc; --side-muted: #7f978c; --side-active: #1b3a2f;
+  --gold: #e3b341; --gold-soft: #33290f;
+  --good: #4fd394; --good-bg: #10301f; --warn: #f2b84b; --warn-bg: #36270b; --bad: #f6857a; --bad-bg: #3a1714; --info: #82b7f5; --info-bg: #13283f;
+  --s1: #3987e5; --s2: #d95926; --seq: #3fb489;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0b1310; --surface: #121c18; --surface-2: #17231e; --ink: #e5eee9; --ink-2: #c3d0c9; --muted: #8fa199; --line: #24332c; --line-2: #1c2924;
+  --brand: #3fb489; --brand-strong: #6fd0aa; --brand-soft: #173329; --brand-ink: #062118;
+  --side: #08100d; --side-2: #0f1a16; --side-ink: #d6e3dc; --side-muted: #7f978c; --side-active: #1b3a2f;
+  --gold: #e3b341; --gold-soft: #33290f;
+  --good: #4fd394; --good-bg: #10301f; --warn: #f2b84b; --warn-bg: #36270b; --bad: #f6857a; --bad-bg: #3a1714; --info: #82b7f5; --info-bg: #13283f;
+  --s1: #3987e5; --s2: #d95926; --seq: #3fb489;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4); color-scheme: dark; }
+
 * { box-sizing: border-box; }
-body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--fg); font-size:16px; }
-.topbar { display:flex; align-items:center; gap:12px; padding-block:12px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); background:var(--pri); color:var(--pri-fg); position:sticky; top:env(safe-area-inset-top, 0px); z-index:5; }
-.brand { color:var(--pri-fg); text-decoration:none; font-weight:700; flex:1; }
-.net { font-size:12px; padding:2px 8px; border-radius:10px; background:color-mix(in srgb, var(--pri-fg) 20%, transparent); }
-.net.off { background:var(--warn); color:var(--card); }
-.link { background:none; border:0; color:inherit; cursor:pointer; text-decoration:underline; }
-.nav { display:flex; gap:4px; background:var(--card); border-bottom:1px solid var(--bd); overflow-x:auto; }
-.nav a { padding:12px 14px; color:var(--mut); text-decoration:none; white-space:nowrap; border-bottom:3px solid transparent; }
-.nav a.active { color:var(--pri); border-color:var(--pri); font-weight:600; }
-main { max-width:1100px; margin:0 auto; padding-block:16px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
-.card { background:var(--card); border:1px solid var(--bd); border-radius:12px; padding:16px; margin-bottom:12px; }
-h2 { margin:4px 0 12px; font-size:20px; } h3 { margin:16px 0 8px; font-size:16px; }
-label { display:block; font-size:14px; color:var(--mut); margin:10px 0 4px; }
-input, select, textarea { width:100%; padding:12px; font-size:16px; border:1px solid var(--bd); border-radius:8px; background:var(--card); color:var(--fg); }
-textarea { min-height:90px; }
-button, .btn { display:inline-block; padding:12px 18px; font-size:16px; border-radius:8px; border:1px solid var(--pri); background:var(--pri); color:var(--pri-fg); cursor:pointer; text-decoration:none; }
-button.sec { background:var(--card); color:var(--pri); } button.danger { background:var(--err); border-color:var(--err); color:var(--card); }
-button:disabled { opacity:.5; }
-.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-.grow { flex:1; }
-.list-item { display:flex; gap:12px; text-decoration:none; color:inherit; }
-.thumb { width:64px; height:64px; border-radius:8px; object-fit:cover; background:var(--chip); flex-shrink:0; }
-.meta { font-size:13px; color:var(--mut); }
-.badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:10px; background:var(--chip); font-weight:600; }
-.s-COMPLETED { background:var(--ok-bg); color:var(--ok);} .s-REJECTED { background:var(--err-bg); color:var(--err);}
-.s-PENDING_LEADER,.s-PENDING_IE,.s-PENDING_FINANCE { background:var(--warn-bg); color:var(--warn);}
-.s-QUICK_WIN,.s-IMPLEMENTING { background:var(--info-bg); color:var(--info);} .s-OFFLINE { background:var(--chip); color:var(--mut); }
-.kanban { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-.col { background:var(--col); border-radius:8px; padding:8px; min-height:80px; }
-.col h4 { margin:0 0 8px; font-size:13px; color:var(--mut); }
-.task { background:var(--card); border:1px solid var(--bd); border-radius:6px; padding:8px; margin-bottom:6px; font-size:14px; }
-.task button { padding:4px 8px; font-size:12px; margin-top:4px; }
-.gallery { display:flex; gap:8px; flex-wrap:wrap; } .gallery img { width:120px; height:120px; object-fit:cover; border-radius:8px; }
-.stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
-.stat { background:var(--card); border:1px solid var(--bd); border-radius:10px; padding:12px; }
-.stat b { display:block; font-size:24px; color:var(--pri); } .stat span { font-size:13px; color:var(--mut); }
-table { width:100%; border-collapse:collapse; font-size:14px; } th, td { padding:8px; border-bottom:1px solid var(--bd); text-align:left; }
-td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
-.bar { height:8px; background:var(--pri); border-radius:4px; }
-.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--toast); color:var(--toast-fg); padding:12px 18px; border-radius:8px; z-index:10; max-width:90%; }
-.timeline { list-style:none; padding:0; margin:0; } .timeline li { padding:6px 0 6px 14px; border-left:2px solid var(--bd); font-size:14px; }
-@media (max-width:640px) { .kanban { grid-template-columns:1fr; } }
-body { overflow-x:hidden; }
-.kanban > *, .grow { min-width:0; }
-.table-wrap { overflow-x:auto; }
-.demo-login { border-top:1px solid var(--bd); margin-top:12px; padding-top:8px; }
-.demo-login .row button { flex:1 1 120px; padding:10px; font-size:14px; }
-.demo-login small { color:var(--mut); }
-button.link { border:0; background:none; color:var(--pri); padding:0; font-size:14px; }
-.topbar button.link { color:var(--pri-fg); }
-a { color:var(--pri); }
-:focus-visible { outline:2px solid var(--pri); outline-offset:2px; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: var(--brand); text-decoration: none; }
+h1, h2, h3, h4 { margin: 0; line-height: 1.25; text-wrap: balance; }
+h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+h3 { font-size: 15px; font-weight: 700; }
+p { margin: 0; }
+.mono { font-family: var(--f-mono); font-size: .86em; letter-spacing: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.ic { flex-shrink: 0; vertical-align: middle; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---------- shell ---------- */
+.shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100%; }
+.side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; padding: 18px 12px; gap: 6px; z-index: 20; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 16px; color: var(--side-ink); }
+.brand-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 19px; font-weight: 800; }
+.brand b { display: block; font-size: 15px; letter-spacing: -.01em; }
+.brand small { display: block; font-size: 11px; color: var(--side-muted); letter-spacing: .06em; text-transform: uppercase; }
+.nav-group { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--side-muted); padding: 12px 12px 4px; }
+.nav-link { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 9px; color: var(--side-ink); font-weight: 500; font-size: 14px; }
+.nav-link:hover { background: var(--side-2); }
+.nav-link.active { background: var(--side-active); color: #fff; }
+.nav-link.active .ic { color: #7ee0b5; }
+.nav-link .count { margin-left: auto; background: #e8a317; color: #1d1400; font-size: 11px; font-weight: 800; border-radius: 10px; padding: 1px 7px; }
+.side-foot { margin-top: auto; border-top: 1px solid var(--side-2); padding-top: 12px; display: flex; align-items: center; gap: 10px; padding-left: 8px; }
+.side-foot .who { min-width: 0; flex: 1; }
+.side-foot .who b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-foot .who span { font-size: 12px; color: var(--side-muted); }
+.icon-btn { background: none; border: 0; color: inherit; padding: 8px; border-radius: 8px; cursor: pointer; display: inline-grid; place-items: center; }
+.icon-btn:hover { background: var(--side-2); }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; display: flex; align-items: center; gap: 12px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  padding-block: 12px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+.top .crumb { flex: 1; min-width: 0; font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top .menu-btn { display: none; color: var(--ink); }
+.net { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--good); background: var(--good-bg); border-radius: 20px; padding: 4px 10px; }
+.net::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.net.off { color: var(--warn); background: var(--warn-bg); }
+.demo-tag { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--gold); background: var(--gold-soft); padding: 4px 8px; border-radius: 6px; }
+#app { padding-block: 24px 48px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); width: 100%; max-width: 1280px; margin: 0 auto; }
+.tabbar { display: none; }
+.scrim { display: none; }
+
+/* ---------- primitives ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 600; font-size: 14px; padding: 9px 16px; border-radius: 9px; border: 1px solid transparent; cursor: pointer; background: var(--brand); color: var(--brand-ink); white-space: nowrap; transition: background .15s, transform .05s; }
+.btn:hover { background: var(--brand-strong); }
+.btn:active { transform: translateY(1px); }
+.btn.ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.danger { background: var(--surface); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+.btn.danger:hover { background: var(--bad-bg); }
+.btn.gold { background: #e8a317; color: #1d1400; }
+.btn.lg { padding: 12px 20px; font-size: 15px; }
+.btn.sm { padding: 6px 11px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.linkbtn { background: none; border: 0; font: inherit; color: var(--brand); cursor: pointer; padding: 0; font-weight: 600; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
+.pad { padding: 20px; }
+.card-h { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line-2); }
+.card-h h2, .card-h h3 { flex: 1; min-width: 0; }
+.card-b { padding: 16px 20px; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.main-side { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.page-h { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.page-h .grow p { color: var(--muted); margin-top: 4px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.t-neutral { background: var(--line-2); color: var(--ink-2); } .t-warn { background: var(--warn-bg); color: var(--warn); }
+.t-bad { background: var(--bad-bg); color: var(--bad); } .t-info { background: var(--info-bg); color: var(--info); } .t-good { background: var(--good-bg); color: var(--good); }
+.tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.tag .ic { color: var(--brand); }
+.tag.type { background: var(--brand-soft); border-color: transparent; color: var(--brand-strong); }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 12px; font-weight: 800; color: var(--brand-strong); background: var(--brand-soft); flex-shrink: 0; }
+.avatar.lg { width: 56px; height: 56px; font-size: 18px; }
+
+label.f { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.field { display: flex; flex-direction: column; }
+.hint { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+input, select, textarea { width: 100%; font: inherit; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; transition: border-color .15s, box-shadow .15s; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent); }
+textarea { min-height: 96px; resize: vertical; }
+.search { position: relative; }
+.search .ic { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.search input { padding-left: 36px; }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.chip:hover { border-color: var(--brand); }
+.chip.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.chip .n { font-size: 11px; opacity: .7; }
+
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty .ic { color: var(--brand); margin-bottom: 8px; }
+.empty h3 { color: var(--ink); margin-bottom: 4px; }
+
+/* ---------- KPI ---------- */
+.kpi { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.kpi .k-top { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.kpi .k-ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); }
+.kpi .k-val { font-size: 26px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; }
+.kpi .k-val small { font-size: 14px; font-weight: 600; color: var(--muted); }
+.kpi .k-sub { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* ---------- home hero ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; margin-bottom: 20px; }
+.hello { padding: 26px 28px; background: var(--side); color: var(--side-ink); border: 1px solid var(--line); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+.hello::after { content: "改善"; position: absolute; right: -8px; bottom: -46px; font-size: 170px; font-weight: 800; color: #ffffff; opacity: .05; line-height: 1; pointer-events: none; }
+.hello h1 { color: #fff; }
+.hello .date { color: var(--side-muted); font-size: 13px; }
+.hello .quote { border-left: 3px solid #7ee0b5; padding-left: 12px; max-width: 60ch; }
+.hello .quote b { color: #7ee0b5; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; display: block; }
+.hello .btn.ghost { background: transparent; color: #fff; border-color: #33503f; }
+.hello .btn.ghost:hover { background: var(--side-2); }
+.beltcard { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.beltcard .b-head { display: flex; align-items: center; gap: 14px; }
+.beltcard .b-name { font-size: 20px; font-weight: 800; }
+.progress { height: 8px; background: var(--line-2); border-radius: 8px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--brand); border-radius: 8px; }
+.ladder { display: flex; gap: 4px; }
+.ladder span { flex: 1; height: 6px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15); }
+
+.waste-strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+.waste-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; font-weight: 600; text-align: center; cursor: pointer; font-family: inherit; }
+.waste-btn .ic { color: var(--brand); }
+.waste-btn:hover { border-color: var(--brand); background: var(--brand-soft); }
+
+.todo { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--line-2); color: var(--ink); }
+.todo:first-child { border-top: 0; }
+.todo:hover { background: var(--surface-2); }
+.todo .t-ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--warn-bg); color: var(--warn); flex-shrink: 0; }
+.todo .t-ic.info { background: var(--info-bg); color: var(--info); }
+.todo .t-main { flex: 1; min-width: 0; }
+.todo .t-main b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.todo .t-main span { font-size: 12.5px; color: var(--muted); }
+
+.feed { list-style: none; margin: 0; padding: 4px 20px 16px; }
+.feed li { display: flex; gap: 12px; padding: 10px 0; position: relative; }
+.feed li::before { content: ""; position: absolute; left: 15px; top: 40px; bottom: -6px; width: 2px; background: var(--line-2); }
+.feed li:last-child::before { display: none; }
+.feed .f-ic { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); flex-shrink: 0; z-index: 1; }
+.feed .f-ic.good { color: var(--good); background: var(--good-bg); border-color: transparent; }
+.feed .f-ic.bad { color: var(--bad); background: var(--bad-bg); border-color: transparent; }
+.feed .f-txt { font-size: 13.5px; min-width: 0; }
+.feed .f-txt q { display: block; color: var(--muted); font-style: italic; quotes: "“" "”"; }
+.feed time { font-size: 12px; color: var(--muted); }
+
+/* ---------- idea cards ---------- */
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.filters .search { flex: 1 1 260px; }
+.filters select { width: auto; flex: 0 1 200px; }
+.ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+.idea { display: flex; flex-direction: column; overflow: hidden; color: var(--ink); transition: transform .15s, box-shadow .15s; }
+.idea:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(16, 32, 26, .1); }
+.idea .thumb { aspect-ratio: 16 / 8; max-width: 100%; background: var(--surface-2); position: relative; overflow: hidden; display: grid; place-items: center; color: var(--brand); }
+.idea .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.idea .thumb .pill { position: absolute; left: 12px; top: 12px; box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
+.idea .thumb.ph { background: repeating-linear-gradient(135deg, var(--brand-soft) 0 12px, var(--surface-2) 12px 24px); }
+.idea .i-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.idea .i-title { font-weight: 700; font-size: 15.5px; line-height: 1.35; }
+.idea .i-meta { font-size: 12.5px; color: var(--muted); }
+.idea .i-foot { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line-2); font-size: 12.5px; color: var(--muted); }
+.idea .i-foot .save { margin-left: auto; font-weight: 700; color: var(--good); font-variant-numeric: tabular-nums; }
+.stat-ic { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- board ---------- */
+.board-wrap { overflow-x: auto; padding-bottom: 8px; margin-inline: -4px; }
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 12px; padding-inline: 4px; min-width: min-content; }
+.lane { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-height: 300px; }
+.lane-h { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 13.5px; }
+.lane-h .n { margin-left: auto; font-size: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0 8px; }
+.lane-h::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--muted)); }
+.lane-b { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.mini { display: block; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); }
+.mini:hover { border-color: var(--brand); }
+.mini b { display: block; font-size: 13.5px; line-height: 1.35; margin: 4px 0 8px; }
+.mini .row { gap: 6px; font-size: 12px; color: var(--muted); }
+
+/* ---------- approvals ---------- */
+.ap { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 16px; padding: 16px; }
+.ap .ap-img { width: 148px; height: 112px; border-radius: 10px; object-fit: cover; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); }
+.ap .ap-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0; font-size: 13.5px; }
+.ap .ap-pair div { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+.sla { font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.sla.late { color: var(--bad); } .sla.ok { color: var(--good); }
+.ap-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+
+/* ---------- detail ---------- */
+.back { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 13.5px; margin-bottom: 12px; }
+.d-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+.d-head h1 { font-size: 24px; }
+.stepper { display: flex; padding: 18px 20px; gap: 0; overflow-x: auto; }
+.step { flex: 1; min-width: 92px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; position: relative; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.step::before { content: ""; position: absolute; top: 14px; left: -50%; right: 50%; height: 2px; background: var(--line); }
+.step:first-child::before { display: none; }
+.step .dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid var(--line); z-index: 1; color: var(--muted); }
+.step.done .dot { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.step.done::before, .step.cur::before { background: var(--brand); }
+.step.cur .dot { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.step.cur { color: var(--ink); }
+.step.fail .dot { background: var(--bad); border-color: var(--bad); color: #fff; }
+.step.fail { color: var(--bad); }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.compare > div { padding: 16px 20px; }
+.compare > div + div { border-left: 1px solid var(--line-2); }
+.compare .lbl { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+.compare .before .lbl { color: var(--bad); } .compare .after .lbl { color: var(--good); }
+.compare p { white-space: pre-wrap; }
+.gallery { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.gallery a { display: block; }
+.gallery img { width: 104px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.gallery .none { font-size: 13px; color: var(--muted); padding: 10px 0; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 13.5px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.roi-big { display: flex; align-items: baseline; gap: 6px; font-size: 32px; font-weight: 800; letter-spacing: -.02em; color: var(--good); }
+.roi-big small { font-size: 13px; color: var(--muted); font-weight: 600; }
+.kanban { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kcol { background: var(--surface-2); border-radius: 10px; padding: 10px; min-height: 90px; }
+.kcol h4 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: flex; justify-content: space-between; }
+.ktask { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-size: 13px; margin-bottom: 6px; }
+.ktask b { display: block; font-weight: 600; }
+.ktask .k-act { display: flex; justify-content: space-between; margin-top: 6px; }
+.ktask .k-act button { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; color: var(--ink-2); font: inherit; font-size: 12px; }
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { position: relative; padding: 0 0 14px 22px; font-size: 13.5px; }
+.timeline li::before { content: ""; position: absolute; left: 4px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.timeline li::after { content: ""; position: absolute; left: 8px; top: 18px; bottom: 0; width: 2px; background: var(--line-2); }
+.timeline li:last-child::after { display: none; }
+.timeline li.APPROVED::before { background: var(--good); } .timeline li.REJECTED::before { background: var(--bad); }
+.timeline li.PENDING::before { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-bg); }
+.timeline li.REVISION::before { background: var(--warn); }
+.timeline q { display: block; color: var(--ink-2); margin-top: 2px; quotes: "“" "”"; }
+.comments { display: flex; flex-direction: column; gap: 14px; }
+.cmt { display: flex; gap: 10px; }
+.cmt .bubble { background: var(--surface-2); border-radius: 4px 12px 12px 12px; padding: 8px 12px; font-size: 14px; min-width: 0; flex: 1; }
+.cmt .bubble b { font-size: 13px; }
+.cmt .bubble p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.like { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.like.on { color: var(--bad); }
+.like.on .ic { fill: currentColor; }
+.reward { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--gold-soft); border-radius: 10px; color: var(--ink); }
+.reward .ic { color: var(--gold); }
+
+/* ---------- wizard ---------- */
+.wizard { max-width: 880px; margin: 0 auto; }
+.wsteps { display: flex; gap: 8px; margin-bottom: 18px; }
+.wstep { flex: 1; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; font-size: 13.5px; color: var(--muted); }
+.wstep .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--line-2); font-size: 13px; font-weight: 800; color: var(--ink-2); flex-shrink: 0; }
+.wstep.on { border-color: var(--brand); color: var(--ink); }
+.wstep.on .n { background: var(--brand); color: var(--brand-ink); }
+.wstep.done .n { background: var(--brand-soft); color: var(--brand); }
+.picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pick { text-align: left; font: inherit; cursor: pointer; padding: 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); display: flex; flex-direction: column; gap: 4px; position: relative; }
+.pick .ic { color: var(--brand); }
+.pick b { font-size: 13.5px; }
+.pick span { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.pick:hover { border-color: var(--brand); }
+.pick.on { border-color: var(--brand); background: var(--brand-soft); }
+.pick.on::after { content: "✓"; position: absolute; right: 10px; top: 8px; font-weight: 800; color: var(--brand); }
+.drop { border: 2px dashed var(--line); border-radius: var(--r); padding: 28px; text-align: center; color: var(--muted); cursor: pointer; display: block; }
+.drop:hover, .drop.over { border-color: var(--brand); background: var(--brand-soft); }
+.drop .ic { color: var(--brand); }
+.drop input { display: none; }
+.previews { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.previews figure { margin: 0; position: relative; }
+.previews img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; }
+.previews button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .65); color: #fff; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.wfoot { display: flex; gap: 10px; justify-content: space-between; margin-top: 18px; flex-wrap: wrap; }
+.review { display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; font-size: 14px; }
+.review dt { color: var(--muted); } .review dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---------- charts ---------- */
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .grid { stroke: var(--line-2); stroke-width: 1; }
+.chart .grid.base { stroke: var(--line); }
+.chart .axis { fill: var(--muted); font-size: 11px; font-family: var(--f-ui); }
+.chart .bar.s1, .sw.s1 { fill: var(--s1); background: var(--s1); }
+.chart .bar.s2, .sw.s2 { fill: var(--s2); background: var(--s2); }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .hit:hover { fill: color-mix(in srgb, var(--ink) 5%, transparent); }
+.legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-2); flex-wrap: wrap; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.barlist { display: flex; flex-direction: column; gap: 10px; }
+.bl-row { display: grid; grid-template-columns: minmax(110px, 170px) minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 13px; }
+.bl-label { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); }
+.bl-label .ic { color: var(--brand); }
+.bl-track { height: 12px; background: var(--line-2); border-radius: 0 4px 4px 0; overflow: hidden; }
+.bl-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; }
+.bl-fill.s1 { background: var(--s1); } .bl-fill.seq { background: var(--seq); }
+.bl-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ring-bg { fill: none; stroke: var(--line-2); stroke-width: 9; }
+.ring-fg { fill: none; stroke: var(--brand); stroke-width: 9; stroke-linecap: round; }
+.ring-txt { fill: var(--ink); font-size: 18px; font-weight: 800; font-family: var(--f-ui); }
+.spark-line { fill: none; stroke: var(--brand); stroke-width: 2; }
+.spark-area { fill: var(--brand); opacity: .12; }
+.spark-dot { fill: var(--brand); stroke: var(--surface); stroke-width: 1.5; }
+.tip { position: fixed; z-index: 100; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12.5px; padding: 8px 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 6px 20px rgba(0, 0, 0, .2); max-width: 240px; }
+.tip span { display: flex; align-items: center; gap: 6px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 11px 12px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+tr.me td { background: var(--brand-soft); }
+
+/* ---------- leaderboard ---------- */
+.podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 14px; align-items: end; }
+.pod { text-align: center; padding: 20px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pod .rank { font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--muted); }
+.pod.first { padding-block: 28px; border-color: color-mix(in srgb, var(--gold) 50%, var(--line)); background: linear-gradient(180deg, var(--gold-soft), var(--surface) 70%); }
+.pod .pts { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.belts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.beltstep { padding: 16px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+.beltstep.me { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.beltstep .lvl { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.beltstep h3 { font-size: 15px; }
+.beltstep p { font-size: 13px; color: var(--ink-2); }
+
+/* ---------- academy ---------- */
+.acad-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 58px); z-index: 5; background: var(--bg); padding-block: 8px; }
+.acad-sec { margin-bottom: 36px; scroll-margin-top: 130px; }
+.acad-sec > .eyebrow { margin-bottom: 4px; }
+.acad-sec > h2 { font-size: 22px; margin-bottom: 4px; }
+.acad-sec > p { color: var(--muted); margin-bottom: 16px; max-width: 70ch; }
+.principles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.prin { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.prin .p-n { font-family: var(--f-mono); font-size: 12px; font-weight: 700; color: var(--brand); }
+.prin .p-ic { width: 44px; height: 44px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; }
+.prin h3 { font-size: 14.5px; }
+.prin p { font-size: 13px; color: var(--ink-2); }
+.wastes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.waste { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.waste .w-h { display: flex; align-items: center; gap: 10px; }
+.waste .w-ic { width: 40px; height: 40px; border-radius: 10px; background: var(--bad-bg); color: var(--bad); display: grid; place-items: center; flex-shrink: 0; }
+.waste .w-h b { display: block; font-size: 15px; }
+.waste .w-h span { font-size: 12px; color: var(--muted); }
+.waste .ex { font-size: 12.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: auto; }
+.tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tool { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.tool .t-h { display: flex; align-items: center; gap: 12px; }
+.tool .t-ic { width: 42px; height: 42px; border-radius: 10px; background: var(--ink); color: var(--surface); display: grid; place-items: center; flex-shrink: 0; }
+.tool .t-h b { font-size: 16px; display: block; }
+.tool .t-h span { font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: .06em; }
+.tool ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); }
+.motto { text-align: center; padding: 26px; background: var(--side); color: #fff; border: 0; }
+.motto b { display: block; font-size: 20px; font-weight: 800; }
+.motto span { color: var(--side-muted); }
+
+/* ---------- login ---------- */
+.login { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.login-art { background: var(--side); color: var(--side-ink); padding: 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 32px; position: relative; overflow: hidden; }
+.login-art::after { content: "改善"; position: absolute; right: -30px; bottom: -80px; font-size: 300px; font-weight: 800; color: #fff; opacity: .04; line-height: 1; }
+.login-art h1 { font-size: 40px; color: #fff; max-width: 14ch; }
+.login-art h1 em { font-style: normal; color: #7ee0b5; }
+.login-art ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; max-width: 46ch; }
+.login-art li { display: flex; gap: 12px; align-items: flex-start; }
+.login-art li .ic { color: #7ee0b5; margin-top: 2px; }
+.login-form { display: grid; place-items: center; padding: 32px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px)); }
+.login-form .box { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; }
+.quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.quick button { text-align: left; font: inherit; cursor: pointer; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: flex; gap: 10px; align-items: center; }
+.quick button:hover { border-color: var(--brand); background: var(--brand-soft); }
+.quick button b { display: block; font-size: 13.5px; }
+.quick button span { font-size: 12px; color: var(--muted); }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 12px 18px; border-radius: 10px; z-index: 200; font-weight: 600; font-size: 14px; box-shadow: 0 8px 30px rgba(0, 0, 0, .25); max-width: calc(100% - 32px); display: flex; gap: 8px; align-items: center; }
+.skeleton { height: 120px; border-radius: var(--r); background: linear-gradient(90deg, var(--line-2), var(--surface-2), var(--line-2)); background-size: 200% 100%; animation: sh 1.2s infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1180px) {
+  .principles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .belts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .waste-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .main-side { grid-template-columns: minmax(0, 1fr) 300px; }
+}
+@media (max-width: 980px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .side { position: fixed; left: 0; top: 0; bottom: 0; width: 272px; height: auto; transform: translateX(-105%); transition: transform .2s; padding-top: calc(18px + env(safe-area-inset-top, 0px)); padding-left: max(12px, env(safe-area-inset-left, 0px)); }
+  body.drawer .side { transform: none; }
+  body.drawer .scrim { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 15; }
+  .top .menu-btn { display: inline-grid; }
+  .hero, .main-side { grid-template-columns: minmax(0, 1fr); }
+  .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3, .tools, .wastes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .login { grid-template-columns: minmax(0, 1fr); }
+  .login-art { padding: 32px max(16px, env(safe-area-inset-left, 0px)); }
+  .login-art h1 { font-size: 30px; }
+  .login-art ul { display: none; }
+}
+@media (max-width: 720px) {
+  body { font-size: 14.5px; }
+  .top { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .top .top-new, .top .net-txt { display: none; }
+  #app { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); padding-top: 16px; }
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 12; background: var(--surface); border-top: 1px solid var(--line);
+    padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+  .tabbar a, .tabbar button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 600; color: var(--muted); background: none; border: 0; font-family: inherit; padding: 4px 0; cursor: pointer; }
+  .tabbar .active { color: var(--brand); }
+  .tabbar .fab { width: 52px; height: 52px; border-radius: 16px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; margin: -22px auto 0; box-shadow: 0 6px 18px color-mix(in srgb, var(--brand) 45%, transparent); }
+  h1 { font-size: 22px; }
+  .g2, .g3, .tools, .compare, .podium { grid-template-columns: minmax(0, 1fr); }
+  .compare > div + div { border-left: 0; border-top: 1px solid var(--line-2); }
+  .wastes, .principles, .belts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .podium .first { order: -1; }
+  .ap { grid-template-columns: minmax(0, 1fr); }
+  .ap .ap-img { width: 100%; height: 160px; }
+  .ap .ap-pair { grid-template-columns: minmax(0, 1fr); }
+  .kanban { grid-template-columns: minmax(0, 1fr); }
+  .wstep span.t { display: none; }
+  .wstep { justify-content: center; }
+  .review { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .review dd { margin-bottom: 8px; }
+  .bl-row { grid-template-columns: minmax(90px, 120px) minmax(0, 1fr) 52px; }
+  .hello { padding: 20px; }
+  .filters select { flex: 1 1 140px; }
+}
+@media (max-width: 420px) {
+  .g4, .wastes, .principles, .belts { grid-template-columns: minmax(0, 1fr); }
+  .waste-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick { grid-template-columns: minmax(0, 1fr); }
+}
 
 </style>
 </head>
 <body>
-  <header class="topbar">
-    <a href="#/" class="brand">改善 Digital Kaizen <small>DEMO</small></a>
-    <span id="net" class="net"></span>
-    <button id="logout" class="link" hidden>Đăng xuất</button>
-  </header>
-  <nav id="nav" class="nav" hidden>
-    <a href="#/">Sáng kiến</a>
-    <a href="#/new">+ Đề xuất</a>
-    <a href="#/approvals" data-roles="LEADER,IE,FINANCE,ADMIN">Chờ duyệt</a>
-    <a href="#/dashboard">Dashboard</a>
-  </nav>
-  <main id="app"></main>
+  <div id="login" hidden></div>
+  <div class="shell" id="shell" hidden>
+    <aside class="side" id="side" aria-label="Điều hướng chính"></aside>
+    <div class="scrim" id="scrim"></div>
+    <div class="main">
+      <header class="top">
+        <button class="icon-btn menu-btn" id="menu" aria-label="Mở menu"></button>
+        <div class="crumb" id="crumb"></div>
+        <span id="demo-tag"></span>
+        <span class="net" id="net"><span class="net-txt">Trực tuyến</span></span>
+        <a class="btn top-new" href="#/new" id="top-new"></a>
+      </header>
+      <main id="app"></main>
+    </div>
+    <nav class="tabbar" id="tabbar" aria-label="Điều hướng nhanh"></nav>
+  </div>
+  <div id="tip" class="tip" hidden></div>
   <div id="toast" class="toast" hidden></div>
   <script>window.KAIZEN_DEMO = true;</script>
 <script type="module">
@@ -91,27 +513,25 @@ a { color:var(--pri); }
 // Implements the same /api/v1 contract as the Go API, persisted in localStorage.
 // Enabled only when window.KAIZEN_DEMO is true.
 
-const KEY = 'kz_demo_db_v1';
+const KEY = 'kz_demo_db_v2';
 const now = () => new Date().toISOString();
 const daysAgo = (d, h = 0) => new Date(Date.now() - d * 864e5 - h * 36e5).toISOString();
 
-const PIXEL = (color) => {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="${color}"/><text x="160" y="130" font-size="22" text-anchor="middle" fill="#fff" font-family="sans-serif">ẢNH MẪU</text></svg>`;
+const PIXEL = (color, label = 'ẢNH MẪU') => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><defs><pattern id="p" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="24" fill="#ffffff" opacity=".06"/></pattern></defs><rect width="480" height="300" fill="${color}"/><rect width="480" height="300" fill="url(#p)"/><text x="240" y="160" font-size="26" font-weight="700" text-anchor="middle" fill="#fff" font-family="sans-serif" letter-spacing="4">${label}</text><text x="240" y="190" font-size="13" text-anchor="middle" fill="#fff" opacity=".7" font-family="sans-serif">ảnh minh họa</text></svg>`;
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 };
 
 function seed() {
   const users = [
-    { id: 1, employee_code: 'admin', full_name: 'Quản trị hệ thống', role: 'ADMIN', factory_id: null, workshop_id: null, line_id: null },
-    { id: 2, employee_code: 'CN001', full_name: 'Nguyễn Văn Công', role: 'WORKER', factory_id: 1, workshop_id: 1, line_id: 1 },
-    { id: 3, employee_code: 'TT001', full_name: 'Trần Thị Thu', role: 'LEADER', factory_id: 1, workshop_id: 1, line_id: null },
-    { id: 4, employee_code: 'IE001', full_name: 'Lê Văn Hải', role: 'IE', factory_id: 1, workshop_id: null, line_id: null },
-    { id: 5, employee_code: 'KT001', full_name: 'Phạm Thị Lan', role: 'FINANCE', factory_id: 1, workshop_id: null, line_id: null },
-    { id: 6, employee_code: 'GD001', full_name: 'Võ Minh Đức', role: 'DIRECTOR', factory_id: 1, workshop_id: null, line_id: null },
-    { id: 7, employee_code: 'CN002', full_name: 'Đỗ Thị Mai', role: 'WORKER', factory_id: 1, workshop_id: 1, line_id: 2 },
-  ];
+    ['admin', 'Quản trị hệ thống', 'ADMIN', null, null],
+    ['CN001', 'Nguyễn Văn Công', 'WORKER', 1, 1], ['TT001', 'Trần Thị Thu', 'LEADER', 1, null], ['IE001', 'Lê Văn Hải', 'IE', null, null],
+    ['KT001', 'Phạm Thị Lan', 'FINANCE', null, null], ['GD001', 'Võ Minh Đức', 'DIRECTOR', null, null],
+    ['CN002', 'Đỗ Thị Mai', 'WORKER', 1, 2], ['CN003', 'Huỳnh Văn Tài', 'WORKER', 2, 3], ['CN004', 'Lý Thị Hồng', 'WORKER', 1, 1],
+    ['CN005', 'Phan Quốc Bảo', 'WORKER', 2, 3], ['TT002', 'Ngô Văn Sơn', 'LEADER', 2, null], ['CN006', 'Trương Thị Ngọc', 'WORKER', 1, 2],
+  ].map(([employee_code, full_name, role, workshop_id, line_id], i) => ({ id: i + 1, employee_code, full_name, role, factory_id: role === 'ADMIN' ? null : 1, workshop_id, line_id, is_active: true }));
   const db = {
-    seq: { idea: 6, att: 10, ap: 20, task: 10, rw: 5, code: 6 },
+    seq: { idea: 0, att: 0, ap: 0, task: 0, rw: 0, code: 0, cm: 0, user: users.length, line: 3 },
     users,
     categories: [['SAFETY', 'An toàn'], ['QUALITY', 'Chất lượng'], ['COST', 'Chi phí'], ['DELIVERY', 'Giao hàng / Năng suất'], ['5S', '5S / Môi trường làm việc'], ['OTHER', 'Khác']]
       .map(([code, name], i) => ({ id: i + 1, code, name })),
@@ -120,56 +540,80 @@ function seed() {
     lines: [{ id: 1, workshop_id: 1, code: 'L01', name: 'Chuyền 01', qr_token: 'demo-line-01' },
       { id: 2, workshop_id: 1, code: 'L02', name: 'Chuyền 02', qr_token: 'demo-line-02' },
       { id: 3, workshop_id: 2, code: 'C01', name: 'Bàn cắt 01', qr_token: 'demo-line-03' }],
-    ideas: [], attachments: [], approvals: [], tasks: [], financials: [], rewards: [],
+    ideas: [], attachments: [], approvals: [], tasks: [], financials: [], rewards: [], comments: [], likes: [],
   };
-  const idea = (id, o) => db.ideas.push({ id, code: `KZ-2026-${String(id).padStart(6, '0')}`, expected_benefit: null, line_id: 1,
-    factory_id: 1, workshop_id: 1, kaizen_type: null, assignee_id: null, estimated_saving: 0, completed_at: null, ...o, updated_at: o.created_at });
-  const ap = (id, idea_id, level, status, acted_by, comment, created_at, acted_at) =>
-    db.approvals.push({ id, idea_id, level, approver_role: level, workshop_id: level === 'LEADER' ? 1 : null, status, acted_by, comment, created_at, acted_at });
-
-  idea(1, { title: 'Gắn nam châm giữ kéo tại bàn may', category_id: 5, submitter_id: 2, status: 'COMPLETED', kaizen_type: 'QUICK_WIN', assignee_id: 2,
-    problem: 'Kéo thường rơi xuống sàn, mất 5–10 giây tìm mỗi lần.', proposal: 'Gắn dải nam châm cạnh bàn để giữ kéo.', estimated_saving: 6000000,
-    created_at: daysAgo(20), submitted_at: daysAgo(20), completed_at: daysAgo(19) });
-  ap(1, 1, 'LEADER', 'APPROVED', 3, 'Làm ngay', daysAgo(20), daysAgo(19, 20));
-  db.rewards.push({ id: 1, idea_id: 1, user_id: 2, points: 10, amount: 0, reason: 'QUICK_WIN_COMPLETED', status: 'GRANTED', created_at: daysAgo(19) });
-
-  idea(2, { title: 'Băng tải cấp bán thành phẩm tự động', category_id: 3, submitter_id: 7, status: 'COMPLETED', kaizen_type: 'MAJOR', assignee_id: 4,
-    problem: 'Công nhân phải đi lấy bán thành phẩm, mất ~40 phút/ca.', proposal: 'Lắp băng tải mini nối khu cắt và chuyền 02.', estimated_saving: 120000000,
-    line_id: 2, created_at: daysAgo(45), submitted_at: daysAgo(45), completed_at: daysAgo(6) });
-  ap(2, 2, 'LEADER', 'APPROVED', 3, null, daysAgo(45), daysAgo(44, 18));
-  ap(3, 2, 'IE', 'APPROVED', 4, 'Khả thi, giao IE theo dõi', daysAgo(44), daysAgo(43));
-  ap(4, 2, 'FINANCE', 'APPROVED', 5, 'Đã đối chiếu hóa đơn và năng suất 4 tuần', daysAgo(8), daysAgo(6));
-  db.financials.push({ idea_id: 2, investment_cost: 30000000, annual_saving: 90000000, currency: 'VND', verified: true, verified_at: daysAgo(6), note: null });
-  db.tasks.push({ id: 1, idea_id: 2, title: 'Khảo sát mặt bằng', status: 'DONE', assignee_id: 4, due_date: null, position: 1 },
-    { id: 2, idea_id: 2, title: 'Lắp đặt băng tải', status: 'DONE', assignee_id: 4, due_date: null, position: 2 });
-  db.rewards.push({ id: 2, idea_id: 2, user_id: 7, points: 50, amount: 900000, reason: 'MAJOR_PROJECT_COMPLETED', status: 'GRANTED', created_at: daysAgo(6) });
-
-  idea(3, { title: 'Đồ gá định vị túi áo', category_id: 2, submitter_id: 2, status: 'IMPLEMENTING', kaizen_type: 'MAJOR', assignee_id: 4,
-    problem: 'Tỷ lệ lỗi lệch túi 3,2%.', proposal: 'Làm đồ gá mica định vị túi.', estimated_saving: 45000000, created_at: daysAgo(10), submitted_at: daysAgo(10) });
-  ap(5, 3, 'LEADER', 'APPROVED', 3, null, daysAgo(10), daysAgo(9, 20));
-  ap(6, 3, 'IE', 'APPROVED', 4, 'Thử nghiệm trên chuyền 01', daysAgo(9), daysAgo(8));
-  db.financials.push({ idea_id: 3, investment_cost: 5000000, annual_saving: 45000000, currency: 'VND', verified: false, verified_at: null, note: null });
-  db.tasks.push({ id: 3, idea_id: 3, title: 'Thiết kế bản vẽ đồ gá', status: 'DONE', assignee_id: 4, due_date: null, position: 1 },
-    { id: 4, idea_id: 3, title: 'Gia công mica', status: 'IN_PROGRESS', assignee_id: 4, due_date: '2026-11-10', position: 2 },
-    { id: 5, idea_id: 3, title: 'Đào tạo công nhân chuyền 01', status: 'TODO', assignee_id: 3, due_date: '2026-11-15', position: 3 });
-
-  idea(4, { title: 'Sơn vạch lối đi xe đẩy', category_id: 1, submitter_id: 7, status: 'PENDING_LEADER', line_id: 2,
-    problem: 'Xe đẩy và người đi chung lối, có nguy cơ va chạm.', proposal: 'Sơn vạch vàng phân làn lối đi.', estimated_saving: 0, created_at: daysAgo(1), submitted_at: daysAgo(1) });
-  ap(7, 4, 'LEADER', 'PENDING', null, null, daysAgo(1), null);
-
-  idea(5, { title: 'Thay bóng đèn LED khu kiểm hàng', category_id: 3, submitter_id: 2, status: 'PENDING_IE', kaizen_type: 'MAJOR',
-    problem: 'Đèn huỳnh quang tốn điện và thiếu sáng.', proposal: 'Thay 40 bóng LED 18W.', estimated_saving: 24000000, created_at: daysAgo(3), submitted_at: daysAgo(3) });
-  ap(8, 5, 'LEADER', 'APPROVED', 3, null, daysAgo(3), daysAgo(2, 12));
-  ap(9, 5, 'IE', 'PENDING', null, null, daysAgo(2, 12), null);
-
-  idea(6, { title: 'Dùng thùng nhựa thay bao tải', category_id: 6, submitter_id: 2, status: 'REJECTED',
-    problem: 'Bao tải dễ rách.', proposal: 'Dùng thùng nhựa.', estimated_saving: 0, created_at: daysAgo(15), submitted_at: daysAgo(15) });
-  ap(10, 6, 'LEADER', 'REJECTED', 3, 'Trùng với dự án 5S của xưởng đã triển khai', daysAgo(15), daysAgo(14, 20));
-
-  const colors = ['#5b7f73', '#7d6a55', '#4e6a8a'];
-  [[1, 1, 'BEFORE'], [2, 1, 'AFTER'], [3, 2, 'BEFORE'], [4, 2, 'AFTER'], [5, 3, 'BEFORE'], [6, 4, 'BEFORE'], [7, 5, 'BEFORE']]
-    .forEach(([id, idea_id, phase], i) => db.attachments.push({ id, idea_id, phase, file_name: `anh-${id}.svg`, content_type: 'image/svg+xml',
-      size_bytes: 1000, data: PIXEL(colors[i % 3]), created_at: daysAgo(5) }));
+  const lineOf = (uid) => users.find((u) => u.id === uid).line_id || 1;
+  const wsOf = (line) => db.lines.find((l) => l.id === line).workshop_id;
+  const colors = ['#5b7f73', '#7d6a55', '#4e6a8a', '#8a5a5a', '#5a6f8a'];
+  // [title, problem, proposal, category, wastes, tool, saving, submitter, status, type, ageDays, inv, annual]
+  const T = [
+    ['Gắn nam châm giữ kéo tại bàn may', 'Kéo thường rơi xuống sàn, mất 5–10 giây tìm mỗi lần, khoảng 40 lần mỗi ca.', 'Gắn dải nam châm cạnh bàn để giữ kéo cố định.', 5, ['MOTION'], '5S', 6e6, 2, 'COMPLETED', 'QUICK_WIN', 290],
+    ['Băng tải cấp bán thành phẩm tự động', 'Công nhân phải đi lấy bán thành phẩm, mất khoảng 40 phút mỗi ca.', 'Lắp băng tải mini nối khu cắt và Chuyền 02.', 3, ['TRANSPORT', 'WAITING'], 'KANBAN', 120e6, 7, 'COMPLETED', 'MAJOR', 250, 30e6, 90e6],
+    ['Đồ gá định vị túi áo', 'Tỷ lệ lỗi lệch túi 3,2% phải tháo ra may lại.', 'Làm đồ gá mica định vị túi, chống đặt sai.', 2, ['DEFECTS'], 'POKA_YOKE', 45e6, 2, 'IMPLEMENTING', 'MAJOR', 12],
+    ['Sơn vạch phân làn lối đi xe đẩy', 'Xe đẩy và người đi chung lối, đã có 2 lần suýt va chạm trong tháng.', 'Sơn vạch vàng phân làn, gắn gương cầu tại góc khuất.', 1, ['MOTION'], 'VISUAL', 0, 7, 'PENDING_LEADER', null, 1],
+    ['Thay đèn LED khu kiểm hàng', 'Đèn huỳnh quang tốn điện, thiếu sáng làm sót lỗi màu.', 'Thay 40 bóng LED 18W, đặt cảm biến tự tắt giờ nghỉ.', 3, ['DEFECTS'], 'OTHER', 24e6, 2, 'PENDING_IE', 'MAJOR', 3],
+    ['Dùng thùng nhựa thay bao tải chứa phụ liệu', 'Bao tải dễ rách, phụ liệu rơi vãi.', 'Chuyển sang thùng nhựa có nắp.', 6, ['INVENTORY'], '5S', 0, 2, 'REJECTED', null, 30],
+    ['Bảng Kanban cấp chỉ cho chuyền', 'Chuyền dừng trung bình 20 phút mỗi ngày vì hết chỉ.', 'Treo thẻ Kanban 2 thùng, kho cấp khi thẻ được rút.', 4, ['WAITING', 'INVENTORY'], 'KANBAN', 80e6, 9, 'COMPLETED', 'MAJOR', 200, 8e6, 72e6],
+    ['Chuẩn hóa thao tác may cổ áo', 'Mỗi công nhân may cổ một kiểu, thời gian chênh lệch 35%.', 'Quay video thao tác chuẩn, dán bảng hướng dẫn tại máy.', 4, ['OVERPROCESSING', 'SKILLS'], 'STANDARD_WORK', 50e6, 3 + 8, 'COMPLETED', 'MAJOR', 160, 3e6, 55e6],
+    ['Kệ dụng cụ có hình bóng (shadow board)', 'Mất thời gian tìm tua vít, kìm khi chỉnh máy.', 'Làm bảng treo dụng cụ có in hình bóng từng món.', 5, ['MOTION'], '5S', 4e6, 4 + 5, 'COMPLETED', 'QUICK_WIN', 140],
+    ['Cảm biến dừng máy khi đứt chỉ', 'Đứt chỉ không phát hiện, may hỏng cả đường dài.', 'Gắn cảm biến đứt chỉ, máy tự dừng và bật đèn Andon.', 2, ['DEFECTS'], 'JIDOKA', 95e6, 10, 'COMPLETED', 'MAJOR', 110, 40e6, 110e6],
+    ['Giảm thời gian chuyển mã hàng bàn cắt', 'Chuyển mã mất 45 phút do tìm rập và chỉnh máy.', 'Chuẩn bị rập trước, dùng xe đẩy chuyên dụng, kẹp nhanh.', 4, ['WAITING'], 'SMED', 150e6, 8, 'PENDING_FINANCE', 'MAJOR', 60],
+    ['Tấm chắn an toàn cho máy cắt vòng', 'Tay công nhân gần lưỡi cắt khi đẩy vải.', 'Lắp tấm chắn mica và nút dừng khẩn cấp.', 1, ['DEFECTS'], 'POKA_YOKE', 0, 10, 'COMPLETED', 'QUICK_WIN', 95],
+    ['Cắt theo đơn hàng thay vì cắt dồn', 'Cắt dồn cả tuần, bán thành phẩm tồn chất đống, dễ lẫn size.', 'Cắt theo nhịp chuyền mỗi 2 giờ.', 3, ['OVERPRODUCTION', 'INVENTORY'], 'KANBAN', 60e6, 8, 'IMPLEMENTING', 'MAJOR', 25],
+    ['Bỏ bước kiểm tra trùng tại cuối chuyền', 'Hàng được kiểm 2 lần cùng tiêu chí ở chuyền và QC.', 'Gộp về một điểm kiểm, chuẩn hóa checklist.', 2, ['OVERPROCESSING'], 'STANDARD_WORK', 30e6, 12, 'PENDING_LEADER', null, 2],
+    ['Lịch vệ sinh máy hằng ngày 5 phút', 'Máy bám bụi vải, hỏng dầu, dừng máy đột xuất.', 'Lập checklist TPM 5 phút đầu ca cho người vận hành.', 3, ['WAITING', 'DEFECTS'], 'TPM', 35e6, 4 + 5, 'QUICK_WIN', 'QUICK_WIN', 5],
+    ['Hộp đựng nhãn chia ngăn theo size', 'Nhãn size để chung, gắn nhầm size 0,8%.', 'Hộp chia ngăn có màu riêng cho từng size.', 2, ['DEFECTS', 'MOTION'], 'POKA_YOKE', 12e6, 12, 'COMPLETED', 'QUICK_WIN', 45],
+    ['Đào tạo chéo công đoạn cho công nhân', 'Khi có người nghỉ, chuyền thiếu người làm công đoạn khó.', 'Ma trận kỹ năng và lịch đào tạo chéo mỗi tháng.', 4, ['SKILLS'], 'STANDARD_WORK', 40e6, 3, 'PENDING_IE', 'MAJOR', 4],
+    ['Di dời kho phụ liệu gần chuyền', 'Kho phụ liệu cách chuyền 80 mét, đi lại 30 lượt mỗi ngày.', 'Bố trí kệ phụ liệu dùng hằng ngày ngay đầu chuyền.', 4, ['TRANSPORT', 'MOTION'], '5S', 18e6, 11 + 1, 'REVISION_REQUESTED', null, 6],
+    ['Bàn đứng điều chỉnh chiều cao khu ủi', 'Công nhân khu ủi đau lưng, năng suất giảm cuối ca.', 'Thay bàn ủi có chỉnh chiều cao theo người.', 1, ['MOTION'], 'OTHER', 0, 9, 'COMPLETED', 'QUICK_WIN', 75],
+    ['Bảng hiệu suất theo giờ tại chuyền', 'Không biết chuyền đang chậm so với kế hoạch cho đến cuối ca.', 'Bảng trắng ghi sản lượng mỗi giờ, đánh dấu đỏ khi chậm.', 4, ['WAITING'], 'VISUAL', 25e6, 2, 'COMPLETED', 'QUICK_WIN', 20],
+    ['Tái sử dụng vải vụn làm giẻ lau máy', 'Mua giẻ lau 2 triệu mỗi tháng trong khi vải vụn bị bỏ.', 'Cắt vải vụn làm giẻ lau, thu gom theo thùng màu.', 3, ['INVENTORY'], '5S', 24e6, 7, 'COMPLETED', 'QUICK_WIN', 10],
+    ['Ý tưởng: lắp máy lọc nước khu nghỉ', 'Công nhân phải ra ngoài mua nước.', 'Lắp máy lọc nước tại khu nghỉ ca.', 6, [], null, 0, 2, 'DRAFT', null, 0],
+  ];
+  T.forEach(([title, problem, proposal, category_id, waste_types, lean_tool, saving, submitter, status, type, age, inv, annual]) => {
+    const id = ++db.seq.idea, line_id = lineOf(submitter), workshop_id = wsOf(line_id);
+    const at = (d, h = 0) => daysAgo(Math.max(0, age - d), h);
+    const leader = workshop_id === 1 ? 3 : 11;
+    const i = { id, code: `KZ-2026-${String(++db.seq.code).padStart(6, '0')}`, title, problem, proposal, expected_benefit: null, category_id, submitter_id: submitter,
+      factory_id: 1, workshop_id, line_id, kaizen_type: type, status, assignee_id: null, estimated_saving: saving, waste_types, lean_tool,
+      submitted_at: status === 'DRAFT' ? null : at(0), completed_at: null, created_at: at(0), updated_at: at(0) };
+    db.ideas.push(i);
+    const ap = (level, st, by, d, comment = null) => db.approvals.push({ id: ++db.seq.ap, idea_id: id, level, approver_role: level, workshop_id: level === 'LEADER' ? workshop_id : null,
+      status: st, acted_by: st === 'PENDING' ? null : by, comment, created_at: at(d, 0), acted_at: st === 'PENDING' ? null : at(d, -6 - (id % 5) * 4) });
+    if (status === 'DRAFT') return;
+    if (status === 'PENDING_LEADER') ap('LEADER', 'PENDING', null, 0);
+    else if (status === 'REVISION_REQUESTED') ap('LEADER', 'REVISION', leader, 0, 'Bổ sung số lượt đi lại thực tế và ảnh mặt bằng kho');
+    else if (status === 'REJECTED') ap('LEADER', 'REJECTED', leader, 0, 'Trùng với dự án 5S của xưởng đã triển khai tháng trước');
+    else ap('LEADER', 'APPROVED', leader, 0, type === 'QUICK_WIN' ? 'Làm ngay tại chuyền' : 'Chuyển Ban Kaizen thẩm định');
+    if (type === 'QUICK_WIN') i.assignee_id = submitter;
+    if (type === 'MAJOR' && status !== 'PENDING_LEADER') {
+      if (status === 'PENDING_IE') ap('IE', 'PENDING', null, 1);
+      else {
+        ap('IE', 'APPROVED', 4, 1, 'Khả thi, IE theo dõi triển khai'); i.assignee_id = 4;
+        const tasks = [['Khảo sát hiện trạng, đo thời gian', 'DONE'], ['Thiết kế giải pháp', 'DONE'], ['Thi công / lắp đặt', status === 'IMPLEMENTING' ? 'IN_PROGRESS' : 'DONE'], ['Đào tạo và chuẩn hóa', status === 'IMPLEMENTING' ? 'TODO' : 'DONE']];
+        tasks.forEach(([t, st], k) => db.tasks.push({ id: ++db.seq.task, idea_id: id, title: t, status: st, assignee_id: k === 3 ? leader : 4, due_date: null, position: k + 1 }));
+        db.financials.push({ idea_id: id, investment_cost: inv || Math.round(saving * 0.15), annual_saving: annual || saving, currency: 'VND', verified: status === 'COMPLETED', verified_at: status === 'COMPLETED' ? at(age * 0.8) : null });
+        if (status === 'PENDING_FINANCE') ap('FINANCE', 'PENDING', null, age * 0.7);
+        if (status === 'COMPLETED') ap('FINANCE', 'APPROVED', 5, age * 0.7, 'Đã đối chiếu hóa đơn và sản lượng 4 tuần');
+      }
+    }
+    if (status === 'COMPLETED') {
+      i.completed_at = at(type === 'MAJOR' ? age * 0.8 : 2);
+      const fin = db.financials.find((f) => f.idea_id === id);
+      db.rewards.push({ id: ++db.seq.rw, idea_id: id, user_id: submitter, points: type === 'MAJOR' ? 50 : 10, amount: fin ? Math.round(fin.annual_saving * 0.01) : 0,
+        reason: type === 'MAJOR' ? 'MAJOR_PROJECT_COMPLETED' : 'QUICK_WIN_COMPLETED', status: 'GRANTED', created_at: i.completed_at });
+    }
+    db.attachments.push({ id: ++db.seq.att, idea_id: id, phase: 'BEFORE', file_name: `before-${id}.svg`, content_type: 'image/svg+xml', size_bytes: 1000, data: PIXEL(colors[id % colors.length], 'TRƯỚC'), created_at: at(0) });
+    if (status === 'COMPLETED' || status === 'PENDING_FINANCE') db.attachments.push({ id: ++db.seq.att, idea_id: id, phase: 'AFTER', file_name: `after-${id}.svg`, content_type: 'image/svg+xml', size_bytes: 1000, data: PIXEL('#2e7d5b', 'SAU'), created_at: at(2) });
+    [3, 6, 7, 9, 12].filter((u) => (u + id) % 3 === 0).forEach((u) => db.likes.push({ idea_id: id, user_id: u }));
+  });
+  const cm = (idea_id, user_id, body, d) => db.comments.push({ id: ++db.seq.cm, idea_id, user_id, body, created_at: daysAgo(d) });
+  cm(2, 3, 'Ý tưởng rất hay, đề nghị nhân rộng sang Chuyền 01.', 240);
+  cm(2, 6, 'Ban Giám đốc đánh giá cao. Tiết kiệm vượt kỳ vọng.', 195);
+  cm(3, 4, 'Mẫu thử mica đầu tiên đã xong, đang chạy thử 3 ngày.', 6);
+  cm(3, 2, 'Tôi có thể hỗ trợ đào tạo các bạn chuyền 01.', 5);
+  cm(11, 5, 'Cần bảng chấm công chuyển mã 4 tuần để đối chiếu.', 8);
+  cm(4, 9, 'Góc kho phía Đông cũng nên sơn vạch.', 0.5);
   return db;
 }
 
@@ -239,7 +683,8 @@ function upsertFin(id, inv, sav, verify) {
 function listRow(i) {
   const thumb = db.attachments.find((a) => a.idea_id === i.id && a.content_type.startsWith('image/'));
   return { ...i, category: db.categories.find((c) => c.id === i.category_id)?.name, workshop: db.workshops.find((w) => w.id === i.workshop_id)?.name,
-    line: db.lines.find((l) => l.id === i.line_id)?.name ?? null, submitter: nameOf(i.submitter_id), assignee: nameOf(i.assignee_id), thumb_id: thumb?.id ?? null };
+    line: db.lines.find((l) => l.id === i.line_id)?.name ?? null, submitter: nameOf(i.submitter_id), assignee: nameOf(i.assignee_id), thumb_id: thumb?.id ?? null,
+    like_count: db.likes.filter((l) => l.idea_id === i.id).length, comment_count: db.comments.filter((x) => x.idea_id === i.id).length };
 }
 
 function pendingFor(c) {
@@ -272,8 +717,9 @@ async function handle(method, path, body, c) {
       return { ...l, workshop_name: db.workshops.find((w) => w.id === l.workshop_id).name };
     }
     case 'GET /kaizens': {
-      const st = q.get('status');
-      const items = db.ideas.filter((i) => canView(c, i) && (!st || st.split(',').includes(i.status)))
+      const st = q.get('status'), w = q.get('waste'), ty = q.get('type'), kw = (q.get('q') || '').toLowerCase(), mine = q.get('mine') === 'true';
+      const items = db.ideas.filter((i) => canView(c, i) && (!st || st.split(',').includes(i.status)) && (!w || (i.waste_types || []).includes(w))
+        && (!ty || i.kaizen_type === ty) && (!mine || i.submitter_id === c.id) && (!kw || (i.title + ' ' + i.code).toLowerCase().includes(kw)))
         .sort((a, b) => b.created_at.localeCompare(a.created_at)).map(listRow);
       return { items, page: 1, page_size: 50, total: items.length };
     }
@@ -287,7 +733,8 @@ async function handle(method, path, body, c) {
       const i = { id: ++db.seq.idea, code: `KZ-2026-${String(++db.seq.code).padStart(6, '0')}`, client_uuid: cu, title, problem, proposal,
         expected_benefit: field('expected_benefit') || null, category_id: +field('category_id'), submitter_id: c.id, factory_id: 1,
         workshop_id: line.workshop_id, line_id: line.id, kaizen_type: null, status: 'DRAFT', assignee_id: null,
-        estimated_saving: +field('estimated_saving') || 0, submitted_at: null, completed_at: null, created_at: now(), updated_at: now() };
+        estimated_saving: +field('estimated_saving') || 0, lean_tool: field('lean_tool') || null,
+        waste_types: String(field('waste_types') || '').split(',').filter(Boolean), submitted_at: null, completed_at: null, created_at: now(), updated_at: now() };
       db.ideas.push(i);
       if (body instanceof FormData) await addFiles(i.id, c.id, 'BEFORE', body.getAll('before'));
       if (String(field('submit')) === 'true') submit(i);
@@ -300,7 +747,9 @@ async function handle(method, path, body, c) {
         approvals: db.approvals.filter((a) => a.idea_id === i.id).map((a) => ({ ...a, acted_by: nameOf(a.acted_by) })),
         tasks: db.tasks.filter((t) => t.idea_id === i.id).sort((a, b) => a.position - b.position).map((t) => ({ ...t, assignee: nameOf(t.assignee_id) })),
         rewards: db.rewards.filter((x) => x.idea_id === i.id).map((x) => ({ ...x, full_name: nameOf(x.user_id) })),
-        financials: finView(db.financials.find((f) => f.idea_id === i.id)) || null };
+        financials: finView(db.financials.find((f) => f.idea_id === i.id)) || null,
+        liked: db.likes.some((l) => l.idea_id === i.id && l.user_id === c.id),
+        comments: db.comments.filter((x) => x.idea_id === i.id).map((x) => ({ ...x, full_name: nameOf(x.user_id), role: user(x.user_id)?.role })) };
     }
     case 'POST /kaizens/:id/submit': {
       const i = ideaOf(id);
@@ -337,7 +786,8 @@ async function handle(method, path, body, c) {
       return pendingFor(c).map((a) => { const i = listRow(ideaOf(a.idea_id));
         return { approval_id: a.id, level: a.level, pending_since: a.created_at, idea_id: i.id, code: i.code, title: i.title, status: i.status,
           estimated_saving: i.estimated_saving, workshop: i.workshop, submitter: i.submitter, category: i.category,
-          waiting_hours: Math.round((Date.now() - new Date(a.created_at)) / 36e5) }; });
+          waiting_hours: Math.round((Date.now() - new Date(a.created_at)) / 36e5), problem: i.problem, proposal: i.proposal,
+          waste_types: i.waste_types, lean_tool: i.lean_tool, thumb_id: i.thumb_id }; });
     case 'POST /approvals/:id/action': {
       const a = db.approvals.find((x) => x.id === id) || err(404, 'approval not found');
       if (a.status !== 'PENDING') err(409, 'Đã được xử lý');
@@ -371,14 +821,77 @@ async function handle(method, path, body, c) {
       const t = db.tasks.find((x) => x.id === id) || err(404, 'task not found');
       t.status = String(body.status).toUpperCase(); return { status: t.status };
     }
+    case 'POST /kaizens/:id/comments': {
+      const i = ideaOf(id);
+      if (!canView(c, i)) err(403, 'forbidden');
+      if (!String(body.body || '').trim()) err(400, 'Nhập nội dung bình luận');
+      db.comments.push({ id: ++db.seq.cm, idea_id: i.id, user_id: c.id, body: String(body.body).trim().slice(0, 2000), created_at: now() });
+      return { id: db.seq.cm };
+    }
+    case 'POST /kaizens/:id/like': {
+      const i = ideaOf(id), k = db.likes.findIndex((l) => l.idea_id === i.id && l.user_id === c.id);
+      if (k >= 0) db.likes.splice(k, 1); else db.likes.push({ idea_id: i.id, user_id: c.id });
+      return { liked: k < 0, like_count: db.likes.filter((l) => l.idea_id === i.id).length };
+    }
+    case 'GET /activity': {
+      const vis = (iid) => canView(c, ideaOf(iid));
+      const ev = [];
+      db.ideas.filter((i) => i.submitted_at && canView(c, i)).forEach((i) => {
+        ev.push({ at: i.submitted_at, kind: 'SUBMITTED', idea_id: i.id, code: i.code, title: i.title, actor: nameOf(i.submitter_id), detail: null });
+        if (i.completed_at) ev.push({ at: i.completed_at, kind: 'COMPLETED', idea_id: i.id, code: i.code, title: i.title, actor: nameOf(i.submitter_id), detail: null });
+      });
+      db.approvals.filter((a) => a.acted_at && vis(a.idea_id)).forEach((a) => { const i = ideaOf(a.idea_id);
+        ev.push({ at: a.acted_at, kind: a.level + '_' + a.status, idea_id: i.id, code: i.code, title: i.title, actor: nameOf(a.acted_by), detail: a.comment }); });
+      db.comments.filter((x) => vis(x.idea_id)).forEach((x) => { const i = ideaOf(x.idea_id);
+        ev.push({ at: x.created_at, kind: 'COMMENT', idea_id: i.id, code: i.code, title: i.title, actor: nameOf(x.user_id), detail: x.body.slice(0, 140) }); });
+      return ev.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30);
+    }
+    case 'GET /reports/trend': {
+      const v = db.ideas.filter((i) => canView(c, i)), out = [];
+      for (let k = 11; k >= 0; k--) {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k);
+        const m = d.toISOString().slice(0, 7);
+        out.push({ month: m, submitted: v.filter((i) => i.submitted_at?.slice(0, 7) === m).length, completed: v.filter((i) => i.completed_at?.slice(0, 7) === m).length });
+      }
+      return out;
+    }
+    case 'GET /reports/wastes': {
+      const from = q.get('from'), g = {};
+      db.ideas.filter((i) => canView(c, i) && i.status !== 'DRAFT' && (!from || i.created_at >= from)).forEach((i) => (i.waste_types || []).forEach((w) => {
+        g[w] ??= { waste: w, total: 0, completed: 0 }; g[w].total++; if (i.status === 'COMPLETED') g[w].completed++; }));
+      return Object.values(g).sort((a, b) => b.total - a.total);
+    }
+    case 'GET /reports/leaderboard':
+      return db.users.filter((u) => u.role !== 'ADMIN').map((u) => {
+        const rw = db.rewards.filter((x) => x.user_id === u.id);
+        return { user_id: u.id, full_name: u.full_name, role: u.role, workshop: db.workshops.find((w) => w.id === u.workshop_id)?.name ?? null,
+          points: rw.reduce((s, x) => s + x.points, 0), amount: rw.reduce((s, x) => s + x.amount, 0),
+          ideas: db.ideas.filter((i) => i.submitter_id === u.id && i.status !== 'DRAFT').length, completed: db.ideas.filter((i) => i.submitter_id === u.id && i.status === 'COMPLETED').length };
+      }).sort((a, b) => b.points - a.points || b.ideas - a.ideas);
+    case 'GET /admin/users':
+      if (c.role !== 'ADMIN') err(403, 'forbidden');
+      return db.users;
+    case 'POST /admin/users': {
+      if (c.role !== 'ADMIN') err(403, 'forbidden');
+      if (!body.employee_code || !body.full_name) err(400, 'Cần mã nhân viên và họ tên');
+      if (db.users.some((u) => u.employee_code === body.employee_code)) err(400, 'Mã nhân viên đã tồn tại');
+      db.users.push({ id: ++db.seq.user, employee_code: body.employee_code, full_name: body.full_name, role: body.role, factory_id: 1, workshop_id: body.workshop_id || null, line_id: null, is_active: true });
+      return { id: db.seq.user };
+    }
+    case 'POST /admin/lines': {
+      if (c.role !== 'ADMIN') err(403, 'forbidden');
+      if (!body.code || !body.name) err(400, 'Cần mã và tên dây chuyền');
+      db.lines.push({ id: ++db.seq.line, workshop_id: +body.parent_id, code: body.code, name: body.name, qr_token: 'demo-line-' + Math.random().toString(36).slice(2, 8) });
+      return { id: db.seq.line };
+    }
     case 'GET /reports/summary': {
-      const v = db.ideas.filter((i) => canView(c, i)), sub = v.filter((i) => i.status !== 'DRAFT');
+      const from = q.get('from'), v = db.ideas.filter((i) => canView(c, i) && (!from || i.created_at >= from)), sub = v.filter((i) => i.status !== 'DRAFT');
       const cnt = (f) => v.filter(f).length, done = cnt((i) => i.status === 'COMPLETED');
       const active = cnt((i) => !['DRAFT', 'REJECTED'].includes(i.status));
       const fin = db.financials.filter((f) => f.verified && v.some((i) => i.id === f.idea_id));
       const leaderHrs = db.approvals.filter((a) => a.level === 'LEADER' && a.acted_at).map((a) => (new Date(a.acted_at) - new Date(a.created_at)) / 36e5);
       const byCat = {}; sub.forEach((i) => { const n = listRow(i).category; byCat[n] = (byCat[n] || 0) + 1; });
-      const top = {}; db.rewards.forEach((x) => { const u = user(x.user_id); const k = u.full_name;
+      const top = {}; db.rewards.filter((x) => v.some((i) => i.id === x.idea_id)).forEach((x) => { const u = user(x.user_id); const k = u.full_name;
         top[k] ??= { full_name: k, workshop: db.workshops.find((w) => w.id === u.workshop_id)?.name, points: 0, ideas: 0 }; top[k].points += x.points; top[k].ideas++; });
       return { total_ideas: sub.length, completed: done, rejected: cnt((i) => i.status === 'REJECTED'),
         pending_approval: cnt((i) => i.status.startsWith('PENDING')), in_progress: cnt((i) => ['QUICK_WIN', 'IMPLEMENTING'].includes(i.status)),
@@ -388,12 +901,14 @@ async function handle(method, path, body, c) {
         verified_saving: fin.reduce((s, f) => s + f.annual_saving, 0), verified_investment: fin.reduce((s, f) => s + f.investment_cost, 0),
         avg_leader_response_hours: leaderHrs.length ? Math.round(leaderHrs.reduce((a, b) => a + b, 0) / leaderHrs.length * 10) / 10 : 0,
         participants: new Set(sub.map((i) => i.submitter_id)).size,
+        by_status: Object.entries(v.reduce((g, i) => ((g[i.status] = (g[i.status] || 0) + 1), g), {})).map(([status, total]) => ({ status, total })),
         by_category: Object.entries(byCat).map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total),
         top_contributors: Object.values(top).sort((a, b) => b.points - a.points) };
     }
     case 'GET /reports/roi': {
       const g = {};
-      db.ideas.filter((i) => i.status === 'COMPLETED').forEach((i) => {
+      const from = q.get('from');
+      db.ideas.filter((i) => i.status === 'COMPLETED' && canView(c, i) && (!from || i.completed_at >= from)).forEach((i) => {
         const f = db.financials.find((x) => x.idea_id === i.id && x.verified); if (!f) return;
         const month = i.completed_at.slice(0, 7), w = listRow(i).workshop, k = month + w;
         g[k] ??= { month, workshop: w, projects: 0, investment: 0, annual_saving: 0 };
@@ -535,268 +1050,902 @@ async function api(path, { method = 'GET', body, form } = {}) {
 
 const fileUrl = (id) => (DEMO ? mockFileUrl(id) : `/api/v1/attachments/${id}/file?token=${encodeURIComponent(session.token)}`);
 
-// ---- app.js ----
+// ---- lean.js ----
+// Lean knowledge base + icon set shared by all views.
 
-const $ = (s, el = document) => el.querySelector(s);
-const app = $('#app');
-const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const money = (v) => new Intl.NumberFormat('vi-VN').format(Math.round(v || 0)) + ' ₫';
-const dt = (v) => (v ? new Date(v).toLocaleString('vi-VN') : '');
-const role = () => session.user?.role;
+const ICON_PATHS = {
+  home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  bulb: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2v.2h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z',
+  list: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01',
+  board: 'M4 4h4v16H4zM10 4h4v10h-4zM16 4h4v6h-4z',
+  approve: 'M9 3h6v3H9zM8 4.5H6a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5.5a1 1 0 0 0-1-1h-2M9 14l2 2 4-4',
+  chart: 'M3 3v18h18M7 15v2M11 11v6M15 7v10M19 12v5',
+  trophy: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 21v-2h6v2',
+  book: 'M4 19V5a2 2 0 0 1 2-2h14v15H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h14',
+  users: 'M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
+  user: 'M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM3 22a9 9 0 0 1 18 0',
+  plus: 'M12 5v14M5 12h14',
+  search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3',
+  camera: 'M14.5 4h-5L7.5 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3.5zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  heart: 'M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z',
+  message: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  check: 'M20 6 9 17l-5-5',
+  x: 'M18 6 6 18M6 6l12 12',
+  arrowR: 'M5 12h14M13 6l6 6-6 6',
+  chevL: 'M15 18l-6-6 6-6',
+  chevR: 'M9 18l6-6-6-6',
+  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
+  upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12',
+  coins: 'M9 14a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM18.1 10.4A6 6 0 1 1 10.3 18',
+  target: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  flag: 'M4 22V4M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1',
+  refresh: 'M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5',
+  alert: 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01',
+  layers: 'M12 2 2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  hourglass: 'M5 22h14M5 2h14M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4a2 2 0 0 0 .6-1.4V2',
+  skill: 'M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM3 22a9 9 0 0 1 12.5-8.3M19 15v3M19 21h.01',
+  truck: 'M2 6h12v10H2zM14 9h4l3 3v4h-7M6.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  box: 'M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+  move: 'M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20',
+  sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+  zap: 'M13 2 3 14h9l-1 8 10-12h-9z',
+  award: 'M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM8.5 13.5 7 22l5-3 5 3-1.5-8.5',
+  sparkles: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z',
+  factory: 'M2 20V9l6 4V9l6 4V4h6v16zM2 20h20M6 16h2M11 16h2',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4',
+  wifiOff: 'M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 5.2-2.8M19 12.9a10 10 0 0 0-2.4-1.7M12 20h.01',
+  menu: 'M4 6h16M4 12h16M4 18h16',
+  send: 'M22 2 11 13M22 2l-7 20-4-9-9-4z',
+  image: 'M3 3h18v18H3zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM21 15l-5-5L5 21',
+  calendar: 'M3 5h18v16H3zM16 3v4M8 3v4M3 10h18',
+  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  stop: 'M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9zM12 8v4M12 16h.01',
+  timer: 'M10 2h4M12 14l3-3M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16z',
+  doc: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8',
+  wrench: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z',
+  grid: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+  trend: 'M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6',
+  cycle: 'M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5',
+  trash: 'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 11v6M14 11v6',
+  handshake: 'M11 17l2 2a1.4 1.4 0 0 0 2-2M14 14l2.5 2.5a1.4 1.4 0 0 0 2-2L15 11M2 11l5-5 4 2 3-2 3 1 5 5-3 3M2 11l4 4 3 3',
+  road: 'M4 22 9 2M20 22 15 2M12 6v2M12 12v2M12 18v2',
+  link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
+  copy: 'M9 9h12v12H9zM5 15H3V3h12v2',
+};
+
+function icon(name, size = 20, cls = '') {
+  return `<svg class="ic ${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICON_PATHS[name] || ICON_PATHS.sparkles}"/></svg>`;
+}
+
+const WASTES = [
+  { code: 'DEFECTS', vi: 'Khuyết tật', en: 'Defects', icon: 'alert', desc: 'Lỗi phải sửa lại, hàng hỏng phải hủy bỏ.', example: 'Lệch đường may, sai kích thước, phải tháo ra làm lại.' },
+  { code: 'OVERPRODUCTION', vi: 'Sản xuất thừa', en: 'Overproduction', icon: 'layers', desc: 'Làm nhiều hơn hoặc sớm hơn nhu cầu.', example: 'Cắt bán thành phẩm dồn sẵn cho cả tuần.' },
+  { code: 'WAITING', vi: 'Chờ đợi', en: 'Waiting', icon: 'hourglass', desc: 'Người hoặc máy đứng chờ vật tư, thông tin, phê duyệt.', example: 'Chuyền dừng 20 phút chờ cấp chỉ.' },
+  { code: 'SKILLS', vi: 'Lãng phí tài năng', en: 'Non-utilized talent', icon: 'skill', desc: 'Không tận dụng kiến thức, sáng tạo của con người.', example: 'Thợ lành nghề chỉ làm việc đơn giản, không được góp ý.' },
+  { code: 'TRANSPORT', vi: 'Vận chuyển', en: 'Transportation', icon: 'truck', desc: 'Di chuyển vật tư, thông tin không cần thiết.', example: 'Kho phụ liệu cách chuyền 80 mét.' },
+  { code: 'INVENTORY', vi: 'Tồn kho', en: 'Inventory', icon: 'box', desc: 'Nguyên liệu, bán thành phẩm, thành phẩm tồn dư.', example: 'Vải tồn 3 tháng chiếm chỗ và bị ẩm.' },
+  { code: 'MOTION', vi: 'Thao tác thừa', en: 'Motion', icon: 'move', desc: 'Cử động, đi lại không tạo giá trị.', example: 'Cúi người nhặt dụng cụ, đi lại tìm kéo.' },
+  { code: 'OVERPROCESSING', vi: 'Gia công thừa', en: 'Over-processing', icon: 'sliders', desc: 'Làm kỹ hơn hoặc phức tạp hơn mức khách hàng cần.', example: 'Kiểm tra 2 lần cùng một tiêu chí.' },
+];
+const WASTE = Object.fromEntries(WASTES.map((w) => [w.code, w]));
+
+const TOOLS = [
+  { code: 'KAIZEN', vi: 'Kaizen', icon: 'cycle', tag: 'Cải tiến liên tục', desc: 'Những thay đổi nhỏ, liên tục, do chính người làm việc đề xuất.', points: ['Thay đổi nhỏ, làm ngay', 'Mọi người cùng tham gia', 'Đo trước và sau'] },
+  { code: '5S', vi: '5S', icon: 'grid', tag: 'Tổ chức nơi làm việc', desc: 'Sàng lọc, Sắp xếp, Sạch sẽ, Săn sóc, Sẵn sàng.', points: ['Sàng lọc – Seiri', 'Sắp xếp – Seiton', 'Sạch sẽ – Seiso', 'Săn sóc – Seiketsu', 'Sẵn sàng – Shitsuke'] },
+  { code: 'POKA_YOKE', vi: 'Poka-Yoke', icon: 'shield', tag: 'Chống sai lỗi', desc: 'Thiết kế để lỗi không thể xảy ra hoặc bị phát hiện ngay.', points: ['Ngăn lỗi từ gốc', 'Cơ cấu an toàn', 'Làm đúng ngay lần đầu'] },
+  { code: 'KANBAN', vi: 'Kanban', icon: 'board', tag: 'Quản lý trực quan dòng chảy', desc: 'Thẻ và bảng tín hiệu để kéo công việc theo nhu cầu.', points: ['Bảng công việc', 'Giới hạn việc dở dang', 'Cải thiện dòng chảy'] },
+  { code: 'JIDOKA', vi: 'Jidoka', icon: 'stop', tag: 'Tự động hóa có trí tuệ', desc: 'Máy và người dừng lại khi có bất thường để sửa tận gốc.', points: ['Dừng và xử lý', 'Kiểm soát chất lượng', 'Chất lượng tại nguồn'] },
+  { code: 'SMED', vi: 'SMED', icon: 'timer', tag: 'Chuyển đổi nhanh', desc: 'Rút ngắn thời gian chuyển đổi mã hàng xuống dưới 10 phút.', points: ['Tách việc trong/ngoài', 'Chuẩn bị trước', 'Đồ gá nhanh'] },
+  { code: 'STANDARD_WORK', vi: 'Tiêu chuẩn hóa', icon: 'doc', tag: 'Công việc chuẩn', desc: 'Cách làm tốt nhất hiện tại được viết ra và áp dụng thống nhất.', points: ['Trình tự chuẩn', 'Takt time', 'Tồn chuẩn'] },
+  { code: 'VISUAL', vi: 'Quản lý trực quan', icon: 'eye', tag: 'Nhìn là hiểu', desc: 'Vạch sơn, nhãn, bảng đèn giúp phát hiện bất thường trong vài giây.', points: ['Vạch kẻ, nhãn mác', 'Andon', 'Bảng hiệu suất'] },
+  { code: 'TPM', vi: 'TPM', icon: 'wrench', tag: 'Bảo trì năng suất toàn diện', desc: 'Người vận hành cùng bảo trì để máy không hỏng đột xuất.', points: ['Bảo trì tự quản', 'Bảo trì phòng ngừa', 'OEE'] },
+  { code: 'OTHER', vi: 'Khác', icon: 'sparkles', tag: 'Giải pháp khác', desc: 'Cải tiến không thuộc các công cụ trên.', points: [] },
+];
+const TOOL = Object.fromEntries(TOOLS.map((t) => [t.code, t]));
+
+const PRINCIPLES = [
+  ['cycle', 'Cải tiến liên tục', 'Liên tục hoàn thiện thói quen và hệ thống, mỗi ngày một chút.'],
+  ['trash', 'Loại bỏ lãng phí', 'Bỏ đi thời gian, công sức và nguồn lực không tạo giá trị.'],
+  ['doc', 'Tiêu chuẩn hóa', 'Viết ra cách làm tốt nhất để mọi người làm giống nhau.'],
+  ['users', 'Trao quyền cho mọi người', 'Ai cũng có thể đề xuất, từ công nhân đến giám đốc.'],
+  ['trend', 'Tập trung thay đổi nhỏ', 'Cải tiến nhỏ cộng dồn thành kết quả lớn.'],
+  ['bulb', 'Tư duy giải quyết vấn đề', 'Tìm nguyên nhân gốc (5 Why), sửa hệ thống chứ không đổ lỗi.'],
+  ['sliders', 'Cải tiến quy trình', 'Quy trình tốt tạo ra kết quả tốt.'],
+  ['chart', 'Quyết định dựa trên dữ liệu', 'Đo lường và quan sát tại Gemba trước khi kết luận.'],
+  ['handshake', 'Hợp tác & làm việc nhóm', 'Chia sẻ ý tưởng, cùng nhau nhân rộng cải tiến.'],
+  ['road', 'Tư duy dài hạn', 'Tiến bộ đều đặn tạo tăng trưởng bền vững.'],
+];
+
+const GEMBA_TOOLS = [
+  ['eye', 'Gemba', 'Đến tận nơi, xem tận mắt', 'Quan sát quy trình tại hiện trường, nhận diện vấn đề và lắng nghe người lao động.'],
+  ['layers', '3M', 'Muda · Mura · Muri', 'Muda là lãng phí, Mura là không đồng đều, Muri là quá tải. Loại bỏ cả ba để dòng chảy ổn định.'],
+];
+
+const BELTS = [
+  { code: 'WHITE', vi: 'Đai Trắng', min: 0, color: '#f4f4f1', edge: '#9a9a92', desc: 'Hiểu khái niệm Kaizen và 8 lãng phí. Bắt đầu gửi ý tưởng đầu tiên.', step: 'Học nền tảng' },
+  { code: 'YELLOW', vi: 'Đai Vàng', min: 30, color: '#f2b705', edge: '#a87e00', desc: 'Tham gia cải tiến thường xuyên, hoàn thành các Quick Win tại chuyền.', step: 'Hỗ trợ quy trình' },
+  { code: 'GREEN', vi: 'Đai Xanh', min: 100, color: '#2e9e4f', edge: '#1d6b34', desc: 'Dẫn dắt dự án cải tiến vừa, dùng công cụ Lean để đo lường.', step: 'Thực hành & cải tiến' },
+  { code: 'BLACK', vi: 'Đai Đen', min: 300, color: '#1f1f1f', edge: '#000000', desc: 'Dẫn dắt dự án phức tạp, kèm cặp đồng nghiệp.', step: 'Dẫn dắt & kèm cặp' },
+  { code: 'MASTER', vi: 'Đai Đen Bậc Thầy', min: 800, color: '#6b46c1', edge: '#44287f', desc: 'Định hướng chiến lược cải tiến toàn nhà máy, đào tạo Đai Đen.', step: 'Chiến lược & chuyển đổi' },
+];
+
+function beltOf(points) {
+  let i = 0;
+  BELTS.forEach((b, k) => { if (points >= b.min) i = k; });
+  const cur = BELTS[i], next = BELTS[i + 1] || null;
+  const pct = next ? Math.round(((points - cur.min) / (next.min - cur.min)) * 100) : 100;
+  return { ...cur, index: i, next, pct, toNext: next ? next.min - points : 0 };
+}
+
+function beltSvg(b, size = 44) {
+  return `<svg class="belt" width="${size}" height="${size}" viewBox="0 0 48 48" aria-label="${b.vi}" role="img">
+    <circle cx="24" cy="22" r="15" fill="none" stroke="${b.edge}" stroke-width="9"/>
+    <circle cx="24" cy="22" r="15" fill="none" stroke="${b.color}" stroke-width="6.5"/>
+    <path d="M20 27 15.5 41M28 27l4.5 14" stroke="${b.edge}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M20 27 15.5 41M28 27l4.5 14" stroke="${b.color}" stroke-width="3.6" stroke-linecap="round"/>
+    <rect x="17" y="17" width="14" height="11" rx="3" fill="${b.color}" stroke="${b.edge}" stroke-width="1.6"/></svg>`;
+}
 
 const STATUS = {
-  DRAFT: 'Nháp', PENDING_LEADER: 'Chờ Tổ trưởng', REVISION_REQUESTED: 'Cần chỉnh sửa', REJECTED: 'Từ chối',
-  QUICK_WIN: 'Quick Win - đang làm', PENDING_IE: 'Chờ Ban Kaizen/IE', IMPLEMENTING: 'Đang triển khai',
-  PENDING_FINANCE: 'Chờ Kế toán thẩm định', COMPLETED: 'Hoàn thành', OFFLINE: 'Chờ đồng bộ',
+  DRAFT: { vi: 'Nháp', tone: 'neutral' },
+  PENDING_LEADER: { vi: 'Chờ sơ duyệt', tone: 'warn' },
+  REVISION_REQUESTED: { vi: 'Cần chỉnh sửa', tone: 'warn' },
+  REJECTED: { vi: 'Từ chối', tone: 'bad' },
+  QUICK_WIN: { vi: 'Quick Win · đang làm', tone: 'info' },
+  PENDING_IE: { vi: 'Chờ Ban Kaizen', tone: 'warn' },
+  IMPLEMENTING: { vi: 'Đang triển khai', tone: 'info' },
+  PENDING_FINANCE: { vi: 'Chờ thẩm định ROI', tone: 'warn' },
+  COMPLETED: { vi: 'Hoàn thành', tone: 'good' },
+  OFFLINE: { vi: 'Chờ đồng bộ', tone: 'neutral' },
 };
-const badge = (s) => `<span class="badge s-${esc(s)}">${esc(STATUS[s] || s)}</span>`;
 
-function toast(msg) {
-  const t = $('#toast'); t.textContent = msg; t.hidden = false;
-  clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3500);
+const ROLES = { WORKER: 'Công nhân', LEADER: 'Tổ trưởng', IE: 'Ban Kaizen / IE', FINANCE: 'Kế toán', DIRECTOR: 'Ban Giám đốc', ADMIN: 'Quản trị' };
+
+// ---- charts.js ----
+// Small, dependency-free SVG/HTML charts. Colors come from CSS tokens (--s1, --s2, --seq).
+
+const fmtN = (v) => new Intl.NumberFormat('vi-VN').format(v);
+
+function niceMax(v) {
+  if (v <= 4) return 4;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const m = [1, 2, 2.5, 5, 10].find((k) => k * p >= v);
+  return m * p;
+}
+
+// Grouped vertical bars. series: [{key,label,cls}], rows: [{label, [key]: n}]
+function columnChart(rows, series, { height = 220 } = {}) {
+  const W = 640, H = height, L = 34, B = 26, T = 10, R = 6;
+  const max = niceMax(Math.max(1, ...rows.flatMap((r) => series.map((s) => +r[s.key] || 0))));
+  const pw = (W - L - R) / rows.length, gap = 2;
+  const bw = Math.min(18, (pw * 0.62 - gap * (series.length - 1)) / series.length);
+  const y = (v) => T + (H - T - B) * (1 - v / max);
+  const ticks = [0, max / 2, max];
+  let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${series.map((s) => s.label).join(', ')} theo tháng">`;
+  ticks.forEach((t) => {
+    svg += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" class="grid${t === 0 ? ' base' : ''}"/>`;
+    svg += `<text x="${L - 6}" y="${y(t) + 4}" class="axis" text-anchor="end">${fmtN(t)}</text>`;
+  });
+  rows.forEach((r, i) => {
+    const cx = L + pw * i + pw / 2, total = series.length * bw + (series.length - 1) * gap;
+    series.forEach((s, k) => {
+      const v = +r[s.key] || 0, x = cx - total / 2 + k * (bw + gap), top = y(v), h = y(0) - top;
+      if (v > 0) svg += `<path class="bar ${s.cls}" d="M${x},${y(0)} V${top + Math.min(4, h)} q0,-${Math.min(4, h)} ${Math.min(4, bw / 2)},-${Math.min(4, h)} H${x + bw - Math.min(4, bw / 2)} q${Math.min(4, bw / 2)},0 ${Math.min(4, bw / 2)},${Math.min(4, h)} V${y(0)} Z"/>`;
+    });
+    svg += `<rect x="${L + pw * i}" y="${T}" width="${pw}" height="${H - T - B}" class="hit" data-tip="<b>${r.label}</b>${series.map((s) => `<span><i class='sw ${s.cls}'></i>${s.label}: ${fmtN(+r[s.key] || 0)}</span>`).join('')}"/>`;
+    svg += `<text x="${cx}" y="${H - 8}" class="axis" text-anchor="middle">${r.short || r.label}</text>`;
+  });
+  return svg + '</svg>';
+}
+
+// Horizontal bars with direct value labels (single series).
+function barList(rows, { label = (r) => r.label, value = (r) => r.value, fmt = fmtN, icon = null, cls = 's1' } = {}) {
+  const max = Math.max(1, ...rows.map(value));
+  return `<div class="barlist">${rows.map((r) => `
+    <div class="bl-row" data-tip="<b>${label(r)}</b><span>${fmt(value(r))}</span>">
+      <span class="bl-label">${icon ? icon(r) : ''}${label(r)}</span>
+      <span class="bl-track"><span class="bl-fill ${cls}" style="width:${(value(r) / max) * 100}%"></span></span>
+      <span class="bl-val">${fmt(value(r))}</span>
+    </div>`).join('')}</div>`;
+}
+
+// Ring gauge for a percentage.
+function ring(pct, size = 92) {
+  const r = 38, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct));
+  return `<svg width="${size}" height="${size}" viewBox="0 0 92 92" class="ring" role="img" aria-label="${p}%">
+    <circle cx="46" cy="46" r="${r}" class="ring-bg"/>
+    <circle cx="46" cy="46" r="${r}" class="ring-fg" stroke-dasharray="${(c * p) / 100} ${c}" transform="rotate(-90 46 46)"/>
+    <text x="46" y="52" text-anchor="middle" class="ring-txt">${Math.round(p)}%</text></svg>`;
+}
+
+// Sparkline for small trend in KPI tiles.
+function spark(values, w = 96, h = 28) {
+  if (!values.length) return '';
+  const max = Math.max(1, ...values), step = w / Math.max(1, values.length - 1);
+  const pts = values.map((v, i) => [i * step, h - 3 - (v / max) * (h - 6)]);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const last = pts[pts.length - 1];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" class="spark" aria-hidden="true">
+    <path d="${d} L${w},${h} L0,${h} Z" class="spark-area"/><path d="${d}" class="spark-line"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="2.6" class="spark-dot"/></svg>`;
+}
+
+// ---- app.js ----
+
+// ============ helpers ============
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const app = $('#app');
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nf = new Intl.NumberFormat('vi-VN');
+const money = (v) => nf.format(Math.round(v || 0)) + ' ₫';
+const moneyShort = (v) => {
+  v = +v || 0;
+  if (Math.abs(v) >= 1e9) return (v / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ';
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tr';
+  return nf.format(Math.round(v)) + ' ₫';
+};
+const dt = (v) => (v ? new Date(v).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—');
+const dtt = (v) => (v ? new Date(v).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
+function ago(v) {
+  if (!v) return '';
+  const s = (Date.now() - new Date(v)) / 1000;
+  if (s < 60) return 'vừa xong';
+  if (s < 3600) return Math.floor(s / 60) + ' phút trước';
+  if (s < 86400) return Math.floor(s / 3600) + ' giờ trước';
+  if (s < 86400 * 30) return Math.floor(s / 86400) + ' ngày trước';
+  return dt(v);
+}
+const initials = (n) => String(n || '?').trim().split(/\s+/).slice(-2).map((w) => w[0]).join('').toUpperCase();
+const avatar = (n, cls = '') => `<span class="avatar ${cls}" aria-hidden="true">${esc(initials(n))}</span>`;
+const pill = (s) => `<span class="pill t-${(STATUS[s] || STATUS.DRAFT).tone}">${esc((STATUS[s] || { vi: s }).vi)}</span>`;
+const wasteTags = (list = [], max = 3) => (list || []).slice(0, max).map((w) => WASTE[w] ? `<span class="tag">${icon(WASTE[w].icon, 13)}${WASTE[w].vi}</span>` : '').join('')
+  + ((list || []).length > max ? `<span class="tag">+${list.length - max}</span>` : '');
+const typeTag = (t) => (t ? `<span class="tag type">${t === 'MAJOR' ? 'Dự án lớn' : 'Quick Win'}</span>` : '');
+const toolTag = (t) => (t && TOOL[t] ? `<span class="tag">${icon(TOOL[t].icon, 13)}${TOOL[t].vi}</span>` : '');
+const role = () => session.user?.role;
+const me = () => session.user || {};
+const isApprover = () => ['LEADER', 'IE', 'FINANCE', 'ADMIN'].includes(role());
+const empty = (ic, title, text, cta = '') => `<div class="empty">${icon(ic, 34)}<h3>${title}</h3><p>${text}</p>${cta ? `<p style="margin-top:14px">${cta}</p>` : ''}</div>`;
+
+function toast(msg, ic = 'check') {
+  const t = $('#toast');
+  t.innerHTML = icon(ic, 18) + esc(msg); t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3200);
+}
+
+// chart tooltips: any element with data-tip
+document.addEventListener('mousemove', (e) => {
+  const el = e.target.closest?.('[data-tip]'), tip = $('#tip');
+  if (!el) { tip.hidden = true; return; }
+  tip.innerHTML = el.dataset.tip; tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 14) + 'px';
+  tip.style.top = Math.max(8, e.clientY - r.height - 10) + 'px';
+});
+
+// ============ shell ============
+const NAV = [
+  ['Vận hành', [['', 'home', 'Tổng quan'], ['ideas', 'bulb', 'Sáng kiến'], ['board', 'board', 'Bảng Kaizen'], ['approvals', 'approve', 'Phê duyệt', ['LEADER', 'IE', 'FINANCE', 'ADMIN']]]],
+  ['Hiệu quả', [['analytics', 'chart', 'Phân tích & ROI'], ['leaderboard', 'trophy', 'Bảng vàng']]],
+  ['Tri thức', [['academy', 'book', 'Học viện Lean']]],
+  ['Hệ thống', [['admin', 'users', 'Quản trị', ['ADMIN']]]],
+];
+const TITLES = { '': 'Tổng quan', ideas: 'Sáng kiến cải tiến', board: 'Bảng Kaizen', approvals: 'Phê duyệt', analytics: 'Phân tích & ROI', leaderboard: 'Bảng vàng', academy: 'Học viện Lean', admin: 'Quản trị', new: 'Đề xuất sáng kiến', kaizen: 'Chi tiết sáng kiến' };
+let pendingCount = 0, myPoints = 0;
+
+function renderShell(route) {
+  const u = me(), b = beltOf(myPoints);
+  $('#side').innerHTML = `
+    <a class="brand" href="#/"><span class="brand-mark">改</span><span><b>Digital Kaizen</b><small>Cải tiến liên tục</small></span></a>
+    ${NAV.map(([g, items]) => {
+      const vis = items.filter((i) => !i[3] || i[3].includes(u.role));
+      return vis.length ? `<div class="nav-group">${g}</div>` + vis.map(([k, ic, label]) => `
+        <a class="nav-link ${route === k ? 'active' : ''}" href="#/${k}">${icon(ic, 19)}<span>${label}</span>${k === 'approvals' && pendingCount ? `<span class="count">${pendingCount}</span>` : ''}</a>`).join('') : '';
+    }).join('')}
+    <div class="side-foot">${beltSvg(b, 36)}<div class="who"><b>${esc(u.name)}</b><span>${esc(ROLES[u.role] || u.role)} · ${b.vi}</span></div>
+      <button class="icon-btn" id="logout" title="Đăng xuất" aria-label="Đăng xuất">${icon('logout', 18)}</button></div>`;
+  $('#crumb').textContent = TITLES[route] ?? '';
+  $('#menu').innerHTML = icon('menu', 22);
+  $('#top-new').innerHTML = icon('plus', 18) + 'Đề xuất cải tiến';
+  $('#demo-tag').innerHTML = DEMO ? '<span class="demo-tag">DEMO</span>' : '';
+  const tab = (k, ic, label) => `<a href="#/${k}" class="${route === k ? 'active' : ''}">${icon(ic, 22)}${label}</a>`;
+  $('#tabbar').innerHTML = tab('', 'home', 'Tổng quan') + tab('ideas', 'bulb', 'Sáng kiến')
+    + `<a href="#/new" aria-label="Đề xuất cải tiến"><span class="fab">${icon('camera', 24)}</span></a>`
+    + (isApprover() ? tab('approvals', 'approve', pendingCount ? `Duyệt (${pendingCount})` : 'Duyệt') : tab('leaderboard', 'trophy', 'Bảng vàng'))
+    + `<button id="more">${icon('menu', 22)}Thêm</button>`;
+  $('#logout').onclick = () => { session.clear(); location.hash = '#/login'; };
+  $('#more').onclick = $('#menu').onclick = () => document.body.classList.add('drawer');
+  $('#scrim').onclick = () => document.body.classList.remove('drawer');
+}
+
+async function refreshCounters() {
+  try {
+    const [m, p] = await Promise.all([api('/auth/me'), isApprover() ? api('/approvals/pending') : Promise.resolve([])]);
+    myPoints = m.total_points || 0; pendingCount = p.length;
+  } catch { /* offline */ }
 }
 
 function updateNet() {
   const n = $('#net');
-  n.textContent = navigator.onLine ? 'Online' : 'Offline';
   n.classList.toggle('off', !navigator.onLine);
+  n.innerHTML = `<span class="net-txt">${navigator.onLine ? 'Trực tuyến' : 'Ngoại tuyến'}</span>`;
 }
-window.addEventListener('online', () => { updateNet(); sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`)); });
+window.addEventListener('online', () => { updateNet(); sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh')); });
 window.addEventListener('offline', updateNet);
 
-// ---------------- views ----------------
-const routes = {
-  login: viewLogin, '': viewList, new: viewNew, kaizen: viewDetail, approvals: viewApprovals, dashboard: viewDashboard,
-};
+// ============ router ============
+const routes = { '': viewHome, ideas: viewIdeas, board: viewBoard, approvals: viewApprovals, analytics: viewAnalytics, leaderboard: viewLeaderboard,
+  academy: viewAcademy, admin: viewAdmin, new: viewNew, kaizen: viewDetail };
 
 async function render() {
-  const [path, query] = location.hash.slice(2).split('?');
-  const [name, id] = path.split('/');
+  const [path, query] = location.hash.replace(/^#\/?/, '').split('?');
+  const [name = '', id] = path.split('/');
   const params = new URLSearchParams(query || '');
-  if (!session.token && name !== 'login') {
-    if (params.get('line')) try { sessionStorage.setItem('kz_line', params.get('line')); } catch {}
-    location.hash = '#/login'; return;
+  document.body.classList.remove('drawer');
+  if (!session.token || name === 'login') {
+    if (params.get('line')) try { sessionStorage.setItem('kz_line', params.get('line')); } catch { /* ignore */ }
+    if (session.token && name === 'login') session.clear();
+    $('#shell').hidden = true; $('#login').hidden = false;
+    return viewLogin();
   }
-  $('#nav').hidden = !session.token; $('#logout').hidden = !session.token;
-  document.querySelectorAll('#nav a').forEach((a) => {
-    a.classList.toggle('active', a.getAttribute('href') === '#/' + (name || ''));
-    if (a.dataset.roles) a.hidden = !a.dataset.roles.split(',').includes(role());
-  });
-  try { await (routes[name] || viewList)(id, params); }
-  catch (e) { app.innerHTML = `<div class="card">Lỗi: ${esc(e.message)}</div>`; }
+  $('#login').hidden = true; $('#login').innerHTML = ''; $('#shell').hidden = false;
+  const key = routes[name] ? name : '';
+  renderShell(key);
+  app.innerHTML = '<div class="grid g3"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+  try { await routes[key](id, params); }
+  catch (e) { app.innerHTML = `<div class="card">${empty('alert', 'Không tải được trang', esc(e.message), '<a class="btn ghost" href="#/">Về Tổng quan</a>')}</div>`; }
+  window.scrollTo(0, 0);
+  refreshCounters().then(() => renderShell(key));
 }
 window.addEventListener('hashchange', render);
-$('#logout').onclick = () => { session.clear(); location.hash = '#/login'; };
 
+// ============ login ============
 function viewLogin() {
-  app.innerHTML = `<div class="card" style="max-width:420px;margin:40px auto">
-    <h2>Đăng nhập</h2>
-    <form id="f"><label>Mã nhân viên</label><input name="employee_code" required autocomplete="username">
-    <label>Mật khẩu</label><input name="password" type="password" required autocomplete="current-password">
-    <p><button>Đăng nhập</button></p></form>
-    ${DEMO ? `<div class="demo-login"><p class="meta">Bản demo: dữ liệu chỉ lưu trong trình duyệt của bạn. Chọn vai trò để đăng nhập nhanh:</p>
-      <div class="row">${[['CN001', 'Công nhân'], ['TT001', 'Tổ trưởng'], ['IE001', 'Ban Kaizen / IE'], ['KT001', 'Kế toán'], ['GD001', 'Giám đốc']]
-        .map(([c, l]) => `<button class="sec" data-quick="${c}">${l}<br><small>${c}</small></button>`).join('')}</div>
-      <p><button class="link" id="reset">Khôi phục dữ liệu mẫu</button></p></div>` : ''}</div>`;
+  const demoUsers = [['CN001', 'Công nhân', 'Gửi ý tưởng, chụp ảnh hiện trường'], ['TT001', 'Tổ trưởng', 'Sơ duyệt, xử lý Quick Win'],
+    ['IE001', 'Ban Kaizen / IE', 'Thẩm định kỹ thuật, Kanban'], ['KT001', 'Kế toán', 'Xác thực chi phí và ROI'], ['GD001', 'Giám đốc', 'Theo dõi toàn nhà máy'], ['admin', 'Quản trị', 'Người dùng, xưởng, chuyền']];
+  $('#login').innerHTML = `<div class="login">
+    <section class="login-art">
+      <div class="brand" style="padding:0"><span class="brand-mark">改</span><span><b>Digital Kaizen</b><small>Cải tiến liên tục</small></span></div>
+      <h1>Mỗi ý tưởng nhỏ tại chuyền là <em>một bước tiến lớn</em> của nhà máy.</h1>
+      <ul>
+        <li>${icon('camera')}<span><b>Gửi đề xuất trong 60 giây.</b> Quét QR tại chuyền, chụp ảnh, chọn loại lãng phí. Mất mạng vẫn gửi được.</span></li>
+        <li>${icon('approve')}<span><b>Duyệt dưới 48 giờ.</b> Tổ trưởng, Ban Kaizen, Kế toán duyệt theo luồng rõ ràng, có theo dõi SLA.</span></li>
+        <li>${icon('coins')}<span><b>ROI được kiểm chứng.</b> Kế toán xác thực tiết kiệm, hệ thống tự cộng điểm và thưởng.</span></li>
+        <li>${icon('award')}<span><b>Thăng đai Kaizen.</b> Từ Đai Trắng đến Đai Đen Bậc Thầy theo đóng góp thực tế.</span></li>
+      </ul>
+      <p class="small" style="color:var(--side-muted)">Nhỏ hôm nay · Mạnh ngày mai</p>
+    </section>
+    <section class="login-form"><div class="box">
+      <div><h1>Đăng nhập</h1><p class="muted">Dùng mã nhân viên do quản trị cấp.</p></div>
+      <form id="lf" class="stack">
+        <div class="field"><label class="f" for="lf-code">Mã nhân viên</label><input id="lf-code" name="employee_code" required autocomplete="username" placeholder="VD: CN001"></div>
+        <div class="field"><label class="f" for="lf-pw">Mật khẩu</label><input id="lf-pw" name="password" type="password" required autocomplete="current-password"></div>
+        <button class="btn lg">Đăng nhập ${icon('arrowR', 18)}</button>
+      </form>
+      ${DEMO ? `<div class="stack" style="gap:10px"><div class="eyebrow">Bản demo · chọn vai trò để vào nhanh</div>
+        <div class="quick">${demoUsers.map(([c, l, d]) => `<button data-quick="${c}">${avatar(l)}<span><b>${l}</b><span>${d}</span></span></button>`).join('')}</div>
+        <p class="small muted">Dữ liệu demo chỉ lưu trong trình duyệt của bạn. <button class="linkbtn" id="reset">Khôi phục dữ liệu mẫu</button></p></div>` : ''}
+    </div></section></div>`;
   const doLogin = async (fd) => {
     try {
       const r = await api('/auth/login', { method: 'POST', body: fd });
       session.set(r.token, r.user);
       let line = null;
-      try { line = sessionStorage.getItem('kz_line'); sessionStorage.removeItem('kz_line'); } catch {}
+      try { line = sessionStorage.getItem('kz_line'); sessionStorage.removeItem('kz_line'); } catch { /* ignore */ }
       location.hash = line ? `#/new?line=${line}` : '#/';
-    } catch (err) { toast(err.message); }
+    } catch (err) { toast(err.message, 'alert'); }
   };
-  app.querySelectorAll('[data-quick]').forEach((b) => (b.onclick = () => doLogin({ employee_code: b.dataset.quick, password: '123456' })));
-  const rs = $('#reset'); if (rs) rs.onclick = () => { resetDemo(); toast('Đã khôi phục dữ liệu mẫu'); };
-  $('#f').onsubmit = async (e) => {
-    e.preventDefault();
-    doLogin(Object.fromEntries(new FormData(e.target)));
-  };
+  $('#lf').onsubmit = (e) => { e.preventDefault(); doLogin(Object.fromEntries(new FormData(e.target))); };
+  $$('[data-quick]').forEach((b) => (b.onclick = () => doLogin({ employee_code: b.dataset.quick, password: b.dataset.quick === 'admin' ? 'admin123' : '123456' })));
+  const rs = $('#reset'); if (rs) rs.onclick = () => { resetDemo(); toast('Đã khôi phục dữ liệu mẫu', 'refresh'); };
 }
 
-async function viewList(_, params) {
-  const status = params.get('status') || '';
-  app.innerHTML = `<div class="row"><h2 class="grow">Sáng kiến cải tiến</h2>
-    <select id="st" style="width:auto"><option value="">Tất cả trạng thái</option>
-    ${Object.entries(STATUS).filter(([k]) => k !== 'OFFLINE').map(([k, v]) => `<option value="${k}" ${k === status ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-    <div id="out"></div><div id="items">Đang tải…</div>`;
-  $('#st').onchange = (e) => (location.hash = '#/?status=' + e.target.value);
+// ============ home ============
+function kpi(ic, label, value, sub = '', extra = '') {
+  return `<div class="card kpi"><div class="k-top"><span class="k-ic">${icon(ic, 17)}</span>${label}</div><div class="k-val">${value}</div><div class="k-sub"><span>${sub}</span>${extra}</div></div>`;
+}
 
+async function viewHome() {
+  const u = me();
+  const [m, sum, act, mine, trend, pend] = await Promise.all([api('/auth/me'), api('/reports/summary'), api('/activity').catch(() => []),
+    api('/kaizens?mine=true&page_size=100'), api('/reports/trend').catch(() => []), isApprover() ? api('/approvals/pending') : Promise.resolve([])]);
+  const b = beltOf(m.total_points || 0);
+  const day = Math.floor(Date.now() / 864e5), pr = PRINCIPLES[day % PRINCIPLES.length];
+  const hour = new Date().getHours(), greet = hour < 11 ? 'Chào buổi sáng' : hour < 14 ? 'Chào buổi trưa' : hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+  const assigned = await api('/kaizens?page_size=100&status=QUICK_WIN,IMPLEMENTING').then((r) => r.items.filter((i) => i.assignee_id === u.uid)).catch(() => []);
   const outbox = await pending().catch(() => []);
-  if (outbox.length) {
-    $('#out').innerHTML = `<div class="card"><b>${outbox.length}</b> sáng kiến đang chờ đồng bộ (offline). ${outbox.map((o) => `<div class="meta">${esc(o.fields.title)} ${badge('OFFLINE')}</div>`).join('')}</div>`;
-  }
-  const res = await api('/kaizens?page_size=50' + (status ? '&status=' + status : ''));
-  $('#items').innerHTML = res.items.length ? res.items.map((k) => `
-    <a class="card list-item" href="#/kaizen/${k.id}">
-      ${k.thumb_id ? `<img class="thumb" loading="lazy" src="${fileUrl(k.thumb_id)}" alt="">` : '<div class="thumb"></div>'}
-      <div class="grow"><div><b>${esc(k.title)}</b></div>
-      <div class="meta">${esc(k.code)} · ${esc(k.category)} · ${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''} · ${esc(k.submitter)}</div>
-      <div class="row" style="margin-top:4px">${badge(k.status)}${k.kaizen_type ? `<span class="badge">${esc(k.kaizen_type)}</span>` : ''}
-      <span class="meta">${dt(k.created_at)}</span></div></div></a>`).join('')
-    : '<div class="card">Chưa có sáng kiến nào. <a href="#/new">Gửi đề xuất đầu tiên</a></div>';
+
+  const todos = [
+    ...outbox.map((o) => ({ ic: 'wifiOff', cls: 'info', t: o.fields.title, s: 'Đang chờ có mạng để đồng bộ', href: '#/ideas' })),
+    ...pend.map((a) => ({ ic: 'approve', t: a.title, s: `Chờ bạn duyệt cấp ${a.level === 'LEADER' ? 'Tổ trưởng' : a.level === 'IE' ? 'Ban Kaizen' : 'Kế toán'} · ${a.waiting_hours} giờ`, href: '#/approvals' })),
+    ...mine.items.filter((i) => i.status === 'REVISION_REQUESTED').map((i) => ({ ic: 'alert', t: i.title, s: 'Người duyệt yêu cầu chỉnh sửa', href: '#/kaizen/' + i.id })),
+    ...mine.items.filter((i) => i.status === 'DRAFT').map((i) => ({ ic: 'doc', cls: 'info', t: i.title, s: 'Bản nháp chưa gửi duyệt', href: '#/kaizen/' + i.id })),
+    ...assigned.map((i) => ({ ic: i.status === 'QUICK_WIN' ? 'camera' : 'board', cls: 'info', t: i.title, s: i.status === 'QUICK_WIN' ? 'Thực hiện và tải ảnh After' : 'Cập nhật tiến độ Kanban', href: '#/kaizen/' + i.id })),
+  ];
+  const myDone = mine.items.filter((i) => i.status === 'COMPLETED').length;
+  const mySaving = mine.items.filter((i) => i.status === 'COMPLETED').reduce((s, i) => s + (i.estimated_saving || 0), 0);
+  const scopeLabel = u.role === 'WORKER' ? 'của bạn' : u.role === 'LEADER' ? 'trong xưởng' : 'toàn nhà máy';
+  const feedIc = (k) => k === 'SUBMITTED' ? ['bulb', ''] : k === 'COMPLETED' ? ['trophy', 'good'] : k === 'COMMENT' ? ['message', ''] : k.endsWith('REJECTED') ? ['x', 'bad'] : k.endsWith('APPROVED') ? ['check', 'good'] : ['refresh', ''];
+  const feedTxt = (a) => ({ SUBMITTED: 'đã gửi sáng kiến', COMPLETED: 'đã hoàn thành sáng kiến', COMMENT: 'đã bình luận về' }[a.kind]
+    || `${{ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.kind.split('_')[0]] || ''} ${a.kind.endsWith('APPROVED') ? 'đã duyệt' : a.kind.endsWith('REJECTED') ? 'đã từ chối' : 'yêu cầu sửa'}`);
+
+  app.innerHTML = `
+    <section class="hero">
+      <div class="card hello">
+        <div class="date">${new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <h1>${greet}, ${esc(u.name.split(' ').slice(-1)[0])}.</h1>
+        <div class="quote"><b>Nguyên tắc Kaizen hôm nay</b>${esc(pr[1])}. ${esc(pr[2])}</div>
+        <div class="row"><a class="btn" href="#/new">${icon('camera', 18)}Đề xuất cải tiến</a><a class="btn ghost" href="#/academy">${icon('book', 18)}Học viện Lean</a></div>
+      </div>
+      <div class="card beltcard">
+        <div class="b-head">${beltSvg(b, 64)}<div class="grow"><div class="eyebrow">Cấp đai Kaizen của bạn</div><div class="b-name">${b.vi}</div><div class="muted small">${m.total_points || 0} điểm cải tiến</div></div></div>
+        <div class="progress" role="progressbar" aria-valuenow="${b.pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${b.pct}%"></span></div>
+        <div class="small muted">${b.next ? `Còn <b>${b.toNext} điểm</b> để lên <b>${b.next.vi}</b>. Mỗi Quick Win +10, mỗi dự án lớn +50.` : 'Bạn đã đạt cấp đai cao nhất.'}</div>
+        <div class="ladder">${BELTS.map((x, i) => `<span style="background:${x.color};opacity:${i <= b.index ? 1 : .3}" title="${x.vi}"></span>`).join('')}</div>
+        <a href="#/leaderboard" class="small" style="font-weight:600">Xem Bảng vàng ${icon('chevR', 14)}</a>
+      </div>
+    </section>
+
+    <section class="grid g4" style="margin-bottom:20px">
+      ${kpi('bulb', `Sáng kiến ${scopeLabel}`, sum.total_ideas, `${sum.participants} người tham gia`, spark(trend.map((t) => +t.submitted)))}
+      ${kpi('check', 'Đã hoàn thành', sum.completed, `Tỷ lệ hoàn thành ${sum.completion_rate}%`, spark(trend.map((t) => +t.completed)))}
+      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(sum.verified_saving), `Ước tính ${moneyShort(sum.estimated_saving)}/năm`)}
+      ${kpi('clock', 'Thời gian sơ duyệt TB', `${sum.avg_leader_response_hours}<small> giờ</small>`, sum.avg_leader_response_hours <= 48 ? '<span style="color:var(--good);font-weight:700">Đạt mục tiêu dưới 48 giờ</span>' : '<span style="color:var(--bad);font-weight:700">Vượt mục tiêu 48 giờ</span>')}
+    </section>
+
+    <section class="card" style="margin-bottom:20px">
+      <div class="card-h"><h2>Săn lãng phí tại Gemba</h2><span class="muted small">Thấy lãng phí nào? Chạm để đề xuất ngay</span></div>
+      <div class="card-b"><div class="waste-strip">${WASTES.map((w) => `<button class="waste-btn" data-waste="${w.code}">${icon(w.icon, 24)}${w.vi}</button>`).join('')}</div></div>
+    </section>
+
+    <section class="grid g2">
+      <div class="card">
+        <div class="card-h"><h2>Việc cần làm</h2><span class="pill ${todos.length ? 't-warn' : 't-good'}">${todos.length}</span></div>
+        ${todos.length ? todos.slice(0, 8).map((t) => `<a class="todo" href="${t.href}"><span class="t-ic ${t.cls || ''}">${icon(t.ic, 18)}</span><span class="t-main"><b>${esc(t.t)}</b><span>${esc(t.s)}</span></span>${icon('chevR', 16)}</a>`).join('')
+          : empty('check', 'Không còn việc tồn', 'Bạn đã xử lý xong mọi việc. Hãy đi một vòng Gemba để tìm cơ hội cải tiến mới.')}
+        <div class="card-b" style="border-top:1px solid var(--line-2)"><div class="row"><span class="grow small muted">Sáng kiến của tôi: <b style="color:var(--ink)">${mine.total}</b> · hoàn thành <b style="color:var(--ink)">${myDone}</b> · ước tính tiết kiệm <b style="color:var(--ink)">${moneyShort(mySaving)}</b></span><a class="small" style="font-weight:600" href="#/ideas?mine=true">Xem tất cả</a></div></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Hoạt động gần đây</h2></div>
+        ${act.length ? `<ul class="feed">${act.slice(0, 8).map((a) => { const [ic, c] = feedIc(a.kind); return `<li><span class="f-ic ${c}">${icon(ic, 15)}</span>
+          <div class="f-txt"><b>${esc(a.actor)}</b> ${feedTxt(a)} <a href="#/kaizen/${a.idea_id}">${esc(a.title)}</a>${a.detail ? `<q>${esc(a.detail)}</q>` : ''}<time style="display:block">${ago(a.at)}</time></div></li>`; }).join('')}</ul>`
+          : empty('clock', 'Chưa có hoạt động', 'Các sự kiện gửi, duyệt, bình luận sẽ hiển thị ở đây.')}
+      </div>
+    </section>`;
+  $$('[data-waste]').forEach((b2) => (b2.onclick = () => (location.hash = '#/new?waste=' + b2.dataset.waste)));
 }
 
-async function viewNew(_, params) {
-  const [cats, master] = await Promise.all([api('/categories'), api('/master')]);
-  let qrLine = null;
-  if (params.get('line')) qrLine = await api('/lines/qr/' + encodeURIComponent(params.get('line'))).catch(() => null);
-  const u = session.user;
-  const lines = master.lines.filter((l) => !u.wid || l.workshop_id === u.wid);
-  app.innerHTML = `<div class="card"><h2>Đề xuất sáng kiến mới</h2>
-    ${qrLine ? `<p class="meta">📍 ${esc(qrLine.workshop_name)} / <b>${esc(qrLine.name)}</b> (quét QR)</p>` : ''}
-    <form id="f">
-      <label>Tiêu đề *</label><input name="title" required maxlength="255">
-      <label>Lĩnh vực *</label><select name="category_id" required>${cats.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
-      ${qrLine ? `<input type="hidden" name="line_qr" value="${esc(params.get('line'))}">` : `
-      <label>Dây chuyền</label><select name="line_id"><option value="">(theo hồ sơ của tôi)</option>
-      ${lines.map((l) => `<option value="${l.id}">${esc(l.code)} - ${esc(l.name)}</option>`).join('')}</select>`}
-      <label>Hiện trạng / Vấn đề (Before) *</label><textarea name="problem" required></textarea>
-      <label>Giải pháp đề xuất *</label><textarea name="proposal" required></textarea>
-      <label>Lợi ích mong đợi</label><textarea name="expected_benefit"></textarea>
-      <label>Ước tính tiết kiệm / năm (VNĐ)</label><input name="estimated_saving" type="number" min="0" step="1000" value="0">
-      <label>Ảnh / video hiện trường (Before)</label>
-      <input name="before" type="file" accept="image/*,video/*" capture="environment" multiple>
-      <p class="row"><button name="act" value="submit">Gửi duyệt</button><button class="sec" name="act" value="draft">Lưu nháp</button></p>
-    </form></div>`;
-  $('#f').onsubmit = async (e) => {
+// ============ ideas list ============
+const GROUPS = [['', 'Tất cả'], ['PENDING_LEADER,PENDING_IE,PENDING_FINANCE,REVISION_REQUESTED', 'Chờ duyệt'], ['QUICK_WIN,IMPLEMENTING', 'Đang thực hiện'],
+  ['COMPLETED', 'Hoàn thành'], ['REJECTED', 'Từ chối'], ['DRAFT', 'Nháp']];
+
+function ideaCard(k) {
+  const img = k.thumb_id ? fileUrl(k.thumb_id) : '';
+  const w = (k.waste_types || [])[0];
+  return `<a class="card idea" href="#/kaizen/${k.id}">
+    <div class="thumb ${img ? '' : 'ph'}">${img ? `<img loading="lazy" src="${img}" alt="">` : icon(w && WASTE[w] ? WASTE[w].icon : 'bulb', 40)}${pill(k.status)}</div>
+    <div class="i-body">
+      <div class="i-meta"><span class="mono">${esc(k.code)}</span> · ${esc(k.category)} · ${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</div>
+      <div class="i-title">${esc(k.title)}</div>
+      <div class="chips">${typeTag(k.kaizen_type)}${wasteTags(k.waste_types, 2)}</div>
+    </div>
+    <div class="i-foot">${avatar(k.submitter)}<span class="grow" style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(k.submitter)}<br>${ago(k.submitted_at || k.created_at)}</span>
+      <span class="stat-ic">${icon('heart', 14)}${k.like_count || 0}</span><span class="stat-ic">${icon('message', 14)}${k.comment_count || 0}</span>
+      ${k.estimated_saving ? `<span class="save">${moneyShort(k.estimated_saving)}</span>` : ''}</div></a>`;
+}
+
+async function viewIdeas(_, params) {
+  const st = { status: params.get('status') || '', q: '', waste: params.get('waste') || '', type: '', mine: params.get('mine') === 'true' };
+  app.innerHTML = `
+    <div class="page-h"><div class="grow"><h1>Sáng kiến cải tiến</h1><p>Mọi ý tưởng trong phạm vi bạn được xem, từ lúc gửi đến khi được khen thưởng.</p></div>
+      ${DEMO ? '' : `<a class="btn ghost" href="/api/v1/reports/export.csv" id="export">${icon('download', 18)}Xuất Excel</a>`}
+      <a class="btn" href="#/new">${icon('plus', 18)}Đề xuất mới</a></div>
+    <div class="filters">
+      <div class="search">${icon('search', 18)}<input id="f-q" type="search" placeholder="Tìm theo tiêu đề hoặc mã KZ…" aria-label="Tìm kiếm"></div>
+      <select id="f-waste" aria-label="Loại lãng phí"><option value="">Mọi loại lãng phí</option>${WASTES.map((w) => `<option value="${w.code}" ${st.waste === w.code ? 'selected' : ''}>${w.vi}</option>`).join('')}</select>
+      <select id="f-type" aria-label="Loại cải tiến"><option value="">Quick Win và Dự án</option><option value="QUICK_WIN">Quick Win</option><option value="MAJOR">Dự án lớn</option></select>
+      <button class="chip ${st.mine ? 'on' : ''}" id="f-mine">${icon('user', 15)}Của tôi</button>
+    </div>
+    <div class="chips" id="f-status" style="margin-bottom:16px">${GROUPS.map(([v, l]) => `<button class="chip ${st.status === v ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>
+    <div id="out"></div><div id="items"></div>`;
+  const exp = $('#export');
+  if (exp) exp.onclick = async (e) => {
     e.preventDefault();
-    const form = e.target, fd = new FormData(form);
-    const fields = {};
-    for (const [k, v] of fd.entries()) if (k !== 'before') fields[k] = v;
-    fields.submit = String(e.submitter?.value !== 'draft');
-    const item = { client_uuid: crypto.randomUUID(), fields, files: [...form.before.files] };
-    form.querySelectorAll('button').forEach((b) => (b.disabled = true));
-    if (!navigator.onLine) { await queue(item); toast('Đang offline – đã lưu, sẽ tự đồng bộ khi có mạng'); location.hash = '#/'; return; }
-    try {
-      const r = await api('/kaizens', { method: 'POST', form: toForm(item) });
-      toast(`Đã tạo ${r.code}`); location.hash = '#/kaizen/' + r.id;
-    } catch (err) {
-      if (!err.status || err.status >= 500) { await queue(item); toast('Mất kết nối – đã lưu offline'); location.hash = '#/'; }
-      else { toast(err.message); form.querySelectorAll('button').forEach((b) => (b.disabled = false)); }
-    }
+    const res = await fetch('/api/v1/reports/export.csv', { headers: { Authorization: 'Bearer ' + session.token } });
+    const url = URL.createObjectURL(await res.blob()), a = document.createElement('a');
+    a.href = url; a.download = 'kaizen-export.csv'; a.click(); URL.revokeObjectURL(url);
   };
+  const outbox = await pending().catch(() => []);
+  if (outbox.length) $('#out').innerHTML = `<div class="card pad" style="margin-bottom:16px;display:flex;gap:12px;align-items:center">${icon('wifiOff', 22)}<div><b>${outbox.length} sáng kiến đang chờ đồng bộ</b><div class="small muted">${outbox.map((o) => esc(o.fields.title)).join(' · ')}</div></div></div>`;
+
+  const load = async () => {
+    const qs = new URLSearchParams({ page_size: 100 });
+    Object.entries(st).forEach(([k, v]) => v && qs.set(k, v === true ? 'true' : v));
+    const res = await api('/kaizens?' + qs);
+    $('#items').innerHTML = res.items.length ? `<p class="small muted" style="margin-bottom:10px">${res.total} sáng kiến</p><div class="ideas">${res.items.map(ideaCard).join('')}</div>`
+      : `<div class="card">${empty('search', 'Không có sáng kiến phù hợp', 'Thử bỏ bớt bộ lọc, hoặc gửi đề xuất đầu tiên cho nhóm này.', '<a class="btn" href="#/new">Đề xuất cải tiến</a>')}</div>`;
+  };
+  let tmr;
+  $('#f-q').oninput = (e) => { clearTimeout(tmr); tmr = setTimeout(() => { st.q = e.target.value.trim(); load(); }, 250); };
+  $('#f-waste').onchange = (e) => { st.waste = e.target.value; load(); };
+  $('#f-type').onchange = (e) => { st.type = e.target.value; load(); };
+  $('#f-mine').onclick = (e) => { st.mine = !st.mine; e.currentTarget.classList.toggle('on', st.mine); load(); };
+  $$('#f-status .chip').forEach((c) => (c.onclick = () => { st.status = c.dataset.v; $$('#f-status .chip').forEach((x) => x.classList.toggle('on', x === c)); load(); }));
+  await load();
+}
+
+// ============ board ============
+async function viewBoard() {
+  const res = await api('/kaizens?page_size=100');
+  const lanes = [['PENDING_LEADER', 'Chờ sơ duyệt', 'var(--warn)'], ['QUICK_WIN', 'Quick Win tại chuyền', 'var(--info)'], ['PENDING_IE', 'Chờ Ban Kaizen', 'var(--warn)'],
+    ['IMPLEMENTING', 'Đang triển khai', 'var(--info)'], ['PENDING_FINANCE', 'Thẩm định ROI', 'var(--warn)'], ['COMPLETED', 'Hoàn thành', 'var(--good)']];
+  app.innerHTML = `<div class="page-h"><div class="grow"><h1>Bảng Kaizen</h1><p>Dòng chảy của mọi sáng kiến qua từng chặng phê duyệt. Cột dồn nhiều thẻ là nơi đang tắc nghẽn.</p></div></div>
+    <div class="board-wrap"><div class="board">${lanes.map(([s, l, c]) => { const items = res.items.filter((i) => i.status === s); return `
+      <section class="lane" style="--dot:${c}"><div class="lane-h">${l}<span class="n">${items.length}</span></div><div class="lane-b">
+        ${items.map((k) => `<a class="mini" href="#/kaizen/${k.id}"><span class="mono muted">${esc(k.code)}</span><b>${esc(k.title)}</b>
+          <div class="row">${avatar(k.submitter)}<span class="grow">${esc(k.submitter)}</span>${k.estimated_saving ? `<b style="margin:0;color:var(--good)">${moneyShort(k.estimated_saving)}</b>` : ''}</div>
+          ${(k.waste_types || []).length ? `<div class="chips" style="margin-top:8px">${wasteTags(k.waste_types, 2)}</div>` : ''}</a>`).join('') || '<p class="small muted" style="padding:8px">Trống</p>'}
+      </div></section>`; }).join('')}</div></div>`;
+}
+
+// ============ approvals ============
+async function viewApprovals() {
+  const list = await api('/approvals/pending');
+  const lvl = { LEADER: 'Sơ duyệt cấp Tổ', IE: 'Thẩm định Ban Kaizen', FINANCE: 'Thẩm định tài chính' };
+  app.innerHTML = `<div class="page-h"><div class="grow"><h1>Phê duyệt</h1><p>Mục tiêu: phản hồi mọi sáng kiến trong vòng 48 giờ. Lý do là bắt buộc khi từ chối hoặc yêu cầu sửa.</p></div>
+      <span class="pill ${list.length ? 't-warn' : 't-good'}">${list.length} đang chờ</span></div>
+    <div class="stack">${list.map((a) => `
+      <article class="card ap" data-ap="${a.approval_id}">
+        ${a.thumb_id ? `<img class="ap-img" src="${fileUrl(a.thumb_id)}" alt="Ảnh hiện trường">` : `<div class="ap-img">${icon('image', 30)}</div>`}
+        <div style="min-width:0">
+          <div class="row"><span class="tag type">${lvl[a.level]}</span><span class="sla ${a.waiting_hours > 48 ? 'late' : 'ok'}">${icon('clock', 14)}${a.waiting_hours} giờ${a.waiting_hours > 48 ? ' · quá hạn' : ''}</span><span class="grow"></span><span class="mono muted">${esc(a.code)}</span></div>
+          <h2 style="margin-top:6px"><a href="#/kaizen/${a.idea_id}" style="color:var(--ink)">${esc(a.title)}</a></h2>
+          <div class="small muted">${esc(a.submitter)} · ${esc(a.workshop)} · ${esc(a.category)}${a.estimated_saving ? ` · ước tính <b style="color:var(--good)">${money(a.estimated_saving)}</b>/năm` : ''}</div>
+          ${a.problem ? `<div class="ap-pair"><div><span class="eyebrow" style="color:var(--bad)">Hiện trạng</span><p>${esc(a.problem)}</p></div><div><span class="eyebrow" style="color:var(--good)">Đề xuất</span><p>${esc(a.proposal)}</p></div></div>` : ''}
+          <div class="chips">${wasteTags(a.waste_types, 4)}${toolTag(a.lean_tool)}</div>
+          <textarea placeholder="Ý kiến phản hồi cho người đề xuất (bắt buộc khi từ chối / yêu cầu sửa)" style="margin-top:12px;min-height:64px" aria-label="Ý kiến phản hồi"></textarea>
+          ${a.level === 'FINANCE' ? `<div class="grid g2" style="margin-top:8px"><div class="field"><label class="f">Chi phí đầu tư thực tế (₫)</label><input data-k="investment_cost" type="number" min="0" step="1000"></div>
+            <div class="field"><label class="f">Tiết kiệm / năm đã xác thực (₫)</label><input data-k="annual_saving" type="number" min="0" step="1000"></div></div>` : ''}
+          <div class="ap-actions">
+            ${a.level === 'LEADER' ? `<button class="btn" data-a="APPROVE" data-type="QUICK_WIN">${icon('zap', 16)}Duyệt · Quick Win</button><button class="btn ghost" data-a="APPROVE" data-type="MAJOR">${icon('board', 16)}Duyệt · Dự án lớn → IE</button>`
+              : `<button class="btn" data-a="APPROVE">${icon('check', 16)}${a.level === 'FINANCE' ? 'Xác thực & hoàn thành' : 'Phê duyệt triển khai'}</button>`}
+            <button class="btn ghost" data-a="REVISION">${icon('refresh', 16)}Yêu cầu sửa</button>
+            <button class="btn danger" data-a="REJECT">${icon('x', 16)}Từ chối</button>
+          </div>
+        </div>
+      </article>`).join('') || `<div class="card">${empty('check', 'Không có sáng kiến nào chờ bạn', 'Mọi đề xuất đã được phản hồi đúng hạn. Làm tốt lắm!')}</div>`}</div>`;
+  $$('[data-a]').forEach((b) => b.addEventListener('click', async () => {
+    const card = b.closest('[data-ap]');
+    const body = { action: b.dataset.a, comment: $('textarea', card).value, kaizen_type: b.dataset.type };
+    $$('[data-k]', card).forEach((i) => { if (i.value !== '') body[i.dataset.k] = +i.value; });
+    try {
+      const r = await api(`/approvals/${card.dataset.ap}/action`, { method: 'POST', body });
+      toast('Đã chuyển sang: ' + (STATUS[r.status]?.vi || r.status)); render();
+    } catch (e) { toast(e.message, 'alert'); }
+  }));
+}
+
+// ============ detail ============
+function lifecycle(k) {
+  const major = k.kaizen_type === 'MAJOR', quick = k.kaizen_type === 'QUICK_WIN';
+  const steps = [['DRAFT', 'Gửi đề xuất', 'bulb'], ['PENDING_LEADER', 'Sơ duyệt', 'approve']];
+  if (major) steps.push(['PENDING_IE', 'Ban Kaizen', 'users'], ['IMPLEMENTING', 'Triển khai', 'board'], ['PENDING_FINANCE', 'Thẩm định ROI', 'coins']);
+  else steps.push([quick ? 'QUICK_WIN' : 'IMPLEMENTING', quick ? 'Làm tại chuyền' : 'Triển khai', 'zap']);
+  steps.push(['COMPLETED', 'Hoàn thành', 'trophy']);
+  let cur = steps.findIndex((s) => s[0] === k.status), fail = -1;
+  if (k.status === 'REVISION_REQUESTED') cur = 0;
+  if (k.status === 'COMPLETED') cur = steps.length;
+  if (k.status === 'REJECTED') {
+    const lv = (k.approvals.find((a) => a.status === 'REJECTED') || {}).level;
+    fail = lv === 'IE' ? 2 : lv === 'FINANCE' ? 4 : 1; cur = fail;
+  }
+  return `<div class="card stepper" style="margin-bottom:20px">${steps.map((s, i) => {
+    const c = i === fail ? 'fail' : i < cur ? 'done' : i === cur ? 'cur' : '';
+    return `<div class="step ${c}"><span class="dot">${icon(c === 'done' ? 'check' : c === 'fail' ? 'x' : s[2], 15)}</span>${i === fail ? 'Bị từ chối' : s[1]}</div>`;
+  }).join('')}</div>`;
 }
 
 async function viewDetail(id) {
   const k = await api('/kaizens/' + id);
-  const u = session.user, r = role();
+  const u = me(), r = role();
   const isOwner = k.assignee_id === u.uid, isSubmitter = k.submitter_id === u.uid;
-  const imgs = (phase) => k.attachments.filter((a) => a.phase === phase).map((a) =>
-    a.content_type.startsWith('image/') ? `<a href="${fileUrl(a.id)}" target="_blank"><img loading="lazy" src="${fileUrl(a.id)}" alt="${esc(a.file_name)}"></a>`
-      : `<a href="${fileUrl(a.id)}" target="_blank">${esc(a.file_name)}</a>`).join('') || '<span class="meta">Chưa có</span>';
-  const canTasks = isOwner || ['IE', 'ADMIN', 'LEADER'].includes(r);
   const working = ['QUICK_WIN', 'IMPLEMENTING'].includes(k.status);
-  const canComplete = (k.status === 'QUICK_WIN' && (isOwner || ['LEADER', 'ADMIN'].includes(r)))
-    || (k.status === 'IMPLEMENTING' && (isOwner || ['IE', 'ADMIN'].includes(r)));
+  const canTasks = isOwner || ['IE', 'ADMIN', 'LEADER'].includes(r);
+  const canComplete = (k.status === 'QUICK_WIN' && (isOwner || ['LEADER', 'ADMIN'].includes(r))) || (k.status === 'IMPLEMENTING' && (isOwner || ['IE', 'ADMIN'].includes(r)));
+  const canFin = ['IE', 'FINANCE', 'ADMIN'].includes(r) && !['COMPLETED', 'REJECTED'].includes(k.status) && k.kaizen_type === 'MAJOR';
   const f = k.financials;
+  const imgs = (phase) => { const a = k.attachments.filter((x) => x.phase === phase); return a.length ? a.map((x) => x.content_type.startsWith('image/')
+    ? `<a href="${fileUrl(x.id)}" target="_blank" rel="noopener"><img loading="lazy" src="${fileUrl(x.id)}" alt="${esc(x.file_name)}"></a>`
+    : `<a class="tag" href="${fileUrl(x.id)}" target="_blank" rel="noopener">${icon('doc', 13)}${esc(x.file_name)}</a>`).join('') : `<span class="none">Chưa có ảnh ${phase === 'AFTER' ? 'sau cải tiến' : 'hiện trạng'}</span>`; };
+  const tasksBy = (s) => k.tasks.filter((t) => t.status === s);
 
-  app.innerHTML = `<div class="card">
-    <div class="row"><h2 class="grow">${esc(k.title)}</h2>${badge(k.status)}${k.kaizen_type ? `<span class="badge">${esc(k.kaizen_type)}</span>` : ''}</div>
-    <div class="meta">${esc(k.code)} · ${esc(k.category)} · ${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''} · Người đề xuất: ${esc(k.submitter)}${k.assignee ? ' · Phụ trách: ' + esc(k.assignee) : ''}</div>
-    <h3>Hiện trạng</h3><p>${esc(k.problem)}</p><h3>Giải pháp</h3><p>${esc(k.proposal)}</p>
-    ${k.expected_benefit ? `<h3>Lợi ích</h3><p>${esc(k.expected_benefit)}</p>` : ''}
-    <p class="meta">Ước tính tiết kiệm: <b>${money(k.estimated_saving)}</b>/năm</p>
-    ${['DRAFT', 'REVISION_REQUESTED'].includes(k.status) && isSubmitter ? '<button id="submit">Gửi duyệt</button>' : ''}
-  </div>
-  <div class="card"><h3>Before</h3><div class="gallery">${imgs('BEFORE')}</div>
-    <h3>After</h3><div class="gallery">${imgs('AFTER')}</div>
-    ${working ? `<form id="up" class="row" style="margin-top:8px"><input type="file" name="files" accept="image/*,video/*" capture="environment" multiple class="grow" required><button>Tải ảnh After</button></form>` : ''}
-    ${canComplete ? `<p><button id="complete">${k.status === 'QUICK_WIN' ? '✔ Hoàn thành Quick Win' : '✔ Hoàn thành – chuyển Kế toán thẩm định'}</button></p>` : ''}
-  </div>
-  ${k.kaizen_type === 'MAJOR' ? `<div class="card"><h3>Kanban triển khai</h3>
-    <div class="kanban">${['TODO', 'IN_PROGRESS', 'DONE'].map((s) => `<div class="col"><h4>${s}</h4>${k.tasks.filter((t) => t.status === s).map((t) => `
-      <div class="task"><b>${esc(t.title)}</b>${t.assignee ? `<div class="meta">${esc(t.assignee)}</div>` : ''}${t.due_date ? `<div class="meta">Hạn: ${esc(t.due_date.slice(0, 10))}</div>` : ''}
-      ${working && canTasks ? `<div>${s !== 'TODO' ? `<button class="sec" data-t="${t.id}" data-s="${s === 'DONE' ? 'IN_PROGRESS' : 'TODO'}">◀</button>` : ''}
-      ${s !== 'DONE' ? `<button data-t="${t.id}" data-s="${s === 'TODO' ? 'IN_PROGRESS' : 'DONE'}">▶</button>` : ''}</div>` : ''}</div>`).join('')}</div>`).join('')}</div>
-    ${canTasks && ['IMPLEMENTING', 'PENDING_IE'].includes(k.status) ? `<form id="task" class="row" style="margin-top:8px"><input name="title" placeholder="Công việc mới" required class="grow" style="width:auto"><input name="due_date" type="date" style="width:auto"><button>Thêm</button></form>` : ''}
-  </div>` : ''}
-  ${f || ['IE', 'FINANCE', 'ADMIN'].includes(r) && k.kaizen_type === 'MAJOR' ? `<div class="card"><h3>Tài chính / ROI</h3>
-    ${f ? `<table><tr><td>Chi phí đầu tư</td><td class="num">${money(f.investment_cost)}</td></tr>
-      <tr><td>Tiết kiệm / năm</td><td class="num">${money(f.annual_saving)}</td></tr>
-      <tr><td>ROI</td><td class="num">${f.roi_percent != null ? f.roi_percent + ' %' : '—'}</td></tr>
-      <tr><td>Hoàn vốn</td><td class="num">${f.payback_months != null ? f.payback_months + ' tháng' : '—'}</td></tr>
-      <tr><td>Kế toán xác thực</td><td class="num">${f.verified ? '✔ ' + dt(f.verified_at) : 'Chưa'}</td></tr></table>` : '<p class="meta">Chưa có số liệu</p>'}
-    ${['IE', 'FINANCE', 'ADMIN'].includes(r) && !['COMPLETED', 'REJECTED'].includes(k.status) ? `<form id="fin" class="row" style="margin-top:8px">
-      <input name="investment_cost" type="number" min="0" placeholder="Chi phí đầu tư" class="grow" style="width:auto" value="${f?.investment_cost ?? ''}">
-      <input name="annual_saving" type="number" min="0" placeholder="Tiết kiệm/năm" class="grow" style="width:auto" value="${f?.annual_saving ?? ''}"><button>Lưu</button></form>` : ''}
-  </div>` : ''}
-  <div class="card"><h3>Lịch sử phê duyệt</h3><ul class="timeline">${k.approvals.map((a) => `<li><b>${esc(a.level)}</b> – ${esc(a.status)}
-    ${a.acted_by ? ' bởi ' + esc(a.acted_by) : ''} <span class="meta">${dt(a.acted_at || a.created_at)}</span>${a.comment ? `<div>“${esc(a.comment)}”</div>` : ''}</li>`).join('') || '<li class="meta">Chưa gửi duyệt</li>'}</ul>
-    ${k.rewards.length ? `<h3>Khen thưởng</h3>${k.rewards.map((w) => `<div>🏆 ${esc(w.full_name)}: <b>${w.points} điểm</b>${w.amount ? ' + ' + money(w.amount) : ''}</div>`).join('')}` : ''}
-  </div>`;
+  app.innerHTML = `
+    <a class="back" href="#/ideas">${icon('chevL', 16)}Danh sách sáng kiến</a>
+    <div class="d-head"><div class="grow"><div class="row small muted" style="margin-bottom:6px"><span class="mono">${esc(k.code)}</span>·<span>${esc(k.category)}</span>·<span>${esc(k.workshop)}${k.line ? ' / ' + esc(k.line) : ''}</span></div>
+      <h1>${esc(k.title)}</h1><div class="chips" style="margin-top:10px">${pill(k.status)}${typeTag(k.kaizen_type)}${toolTag(k.lean_tool)}</div></div>
+      <button class="btn ghost like ${k.liked ? 'on' : ''}" id="like">${icon('heart', 18)}${k.like_count || 0} ủng hộ</button></div>
+    ${lifecycle(k)}
+    <div class="main-side">
+      <div class="stack">
+        <section class="card"><div class="compare">
+          <div class="before"><span class="lbl">${icon('alert', 14)}Trước cải tiến · Hiện trạng</span><p>${esc(k.problem)}</p><div class="gallery">${imgs('BEFORE')}</div></div>
+          <div class="after"><span class="lbl">${icon('sparkles', 14)}Sau cải tiến · Giải pháp</span><p>${esc(k.proposal)}</p><div class="gallery">${imgs('AFTER')}</div>
+            ${working ? `<label class="btn ghost sm" style="margin-top:10px">${icon('upload', 15)}Tải ảnh After<input type="file" id="up-after" accept="image/*,video/*" capture="environment" multiple hidden></label>` : ''}</div>
+        </div>
+        ${k.expected_benefit ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lợi ích mong đợi</span><p>${esc(k.expected_benefit)}</p></div>` : ''}
+        ${(k.waste_types || []).length ? `<div class="card-b" style="border-top:1px solid var(--line-2)"><span class="eyebrow">Lãng phí được loại bỏ</span><div class="chips" style="margin-top:6px">${wasteTags(k.waste_types, 8)}</div></div>` : ''}
+        </section>
 
-  const reload = () => viewDetail(id);
-  const act = async (fn, ok) => { try { await fn(); if (ok) toast(ok); reload(); } catch (e) { toast(e.message); } };
+        ${k.kaizen_type === 'MAJOR' ? `<section class="card"><div class="card-h"><h2>Kanban triển khai</h2><span class="muted small">${tasksBy('DONE').length}/${k.tasks.length} hoàn thành</span></div><div class="card-b">
+          <div class="kanban">${[['TODO', 'Cần làm'], ['IN_PROGRESS', 'Đang làm'], ['DONE', 'Hoàn thành']].map(([s, l]) => `<div class="kcol"><h4>${l}<span>${tasksBy(s).length}</span></h4>
+            ${tasksBy(s).map((t) => `<div class="ktask"><b>${esc(t.title)}</b><span class="small muted">${t.assignee ? esc(t.assignee) : 'Chưa giao'}${t.due_date ? ' · hạn ' + dt(t.due_date) : ''}</span>
+              ${working && canTasks ? `<div class="k-act">${s !== 'TODO' ? `<button data-t="${t.id}" data-s="${s === 'DONE' ? 'IN_PROGRESS' : 'TODO'}" aria-label="Lùi">${icon('chevL', 13)}</button>` : '<span></span>'}
+                ${s !== 'DONE' ? `<button data-t="${t.id}" data-s="${s === 'TODO' ? 'IN_PROGRESS' : 'DONE'}" aria-label="Tiến">${icon('chevR', 13)}</button>` : ''}</div>` : ''}</div>`).join('')}</div>`).join('')}</div>
+          ${canTasks && ['IMPLEMENTING', 'PENDING_IE'].includes(k.status) ? `<form id="task" class="row" style="margin-top:12px"><input name="title" placeholder="Thêm công việc triển khai…" required class="grow" style="flex:1 1 200px" aria-label="Tên công việc"><input name="due_date" type="date" style="width:auto" aria-label="Hạn"><button class="btn">${icon('plus', 16)}Thêm</button></form>` : ''}
+        </div></section>` : ''}
+
+        <section class="card"><div class="card-h"><h2>Thảo luận</h2><span class="muted small">${k.comments.length} bình luận</span></div><div class="card-b stack">
+          <div class="comments">${k.comments.map((c) => `<div class="cmt">${avatar(c.full_name)}<div class="bubble"><b>${esc(c.full_name)}</b> <span class="small muted">· ${esc(ROLES[c.role] || '')} · ${ago(c.created_at)}</span><p>${esc(c.body)}</p></div></div>`).join('') || '<p class="small muted">Chưa có bình luận. Hãy góp ý để ý tưởng tốt hơn.</p>'}</div>
+          <form id="cmt" class="row" style="align-items:flex-end"><textarea name="body" required maxlength="2000" placeholder="Góp ý, đặt câu hỏi, chia sẻ kinh nghiệm…" style="min-height:48px;flex:1 1 240px" aria-label="Bình luận"></textarea><button class="btn">${icon('send', 16)}Gửi</button></form>
+        </div></section>
+      </div>
+
+      <aside class="stack">
+        ${(['DRAFT', 'REVISION_REQUESTED'].includes(k.status) && isSubmitter) || canComplete ? `<section class="card pad stack" style="gap:10px">
+          <h3>Việc tiếp theo</h3>
+          ${['DRAFT', 'REVISION_REQUESTED'].includes(k.status) && isSubmitter ? `<button class="btn" id="submit">${icon('send', 16)}Gửi duyệt</button>` : ''}
+          ${canComplete ? `<p class="small muted">${k.status === 'QUICK_WIN' ? 'Cần ít nhất một ảnh After.' : 'Mọi công việc phải xong và có ảnh After.'}</p><button class="btn" id="complete">${icon('check', 16)}${k.status === 'QUICK_WIN' ? 'Hoàn thành Quick Win' : 'Hoàn thành, chuyển Kế toán'}</button>` : ''}
+        </section>` : ''}
+        <section class="card pad stack" style="gap:12px"><h3>Thông tin</h3><dl class="kv">
+          <dt>Người đề xuất</dt><dd>${esc(k.submitter)}</dd>
+          <dt>Người phụ trách</dt><dd>${esc(k.assignee || '—')}</dd>
+          <dt>Ngày gửi</dt><dd>${dt(k.submitted_at)}</dd>
+          <dt>Hoàn thành</dt><dd>${dt(k.completed_at)}</dd>
+          <dt>Ước tính tiết kiệm</dt><dd>${money(k.estimated_saving)}/năm</dd></dl></section>
+        ${f || canFin ? `<section class="card pad stack" style="gap:12px"><div class="row"><h3 class="grow">Hiệu quả tài chính</h3>${f?.verified ? '<span class="pill t-good">Đã xác thực</span>' : '<span class="pill t-neutral">Dự toán</span>'}</div>
+          ${f ? `<div class="roi-big num">${f.roi_percent != null ? f.roi_percent + '%' : '—'}<small>ROI năm đầu</small></div>
+            <dl class="kv"><dt>Chi phí đầu tư</dt><dd>${money(f.investment_cost)}</dd><dt>Tiết kiệm / năm</dt><dd>${money(f.annual_saving)}</dd>
+            <dt>Hoàn vốn</dt><dd>${f.payback_months != null ? f.payback_months + ' tháng' : '—'}</dd>${f.verified ? `<dt>Xác thực</dt><dd>${dt(f.verified_at)}</dd>` : ''}</dl>` : '<p class="small muted">Chưa nhập số liệu.</p>'}
+          ${canFin ? `<form id="fin" class="stack" style="gap:8px"><input name="investment_cost" type="number" min="0" step="1000" placeholder="Chi phí đầu tư (₫)" value="${f?.investment_cost ?? ''}" aria-label="Chi phí đầu tư"><input name="annual_saving" type="number" min="0" step="1000" placeholder="Tiết kiệm / năm (₫)" value="${f?.annual_saving ?? ''}" aria-label="Tiết kiệm mỗi năm"><button class="btn ghost">Lưu dự toán</button></form>` : ''}
+        </section>` : ''}
+        ${k.rewards.length ? `<section class="card pad stack" style="gap:8px"><h3>Khen thưởng</h3>${k.rewards.map((w) => `<div class="reward">${icon('award', 22)}<div><b>${esc(w.full_name)}</b><div class="small">+${w.points} điểm${w.amount ? ' · thưởng ' + money(w.amount) : ''}</div></div></div>`).join('')}</section>` : ''}
+        <section class="card pad stack" style="gap:12px"><h3>Lịch sử phê duyệt</h3>
+          <ul class="timeline">${k.approvals.map((a) => `<li class="${a.status}"><b>${{ LEADER: 'Tổ trưởng', IE: 'Ban Kaizen', FINANCE: 'Kế toán' }[a.level]}</b> · ${{ PENDING: 'đang chờ', APPROVED: 'đã duyệt', REJECTED: 'từ chối', REVISION: 'yêu cầu sửa' }[a.status]}
+            <div class="small muted">${a.acted_by ? esc(a.acted_by) + ' · ' : ''}${dtt(a.acted_at || a.created_at)}</div>${a.comment ? `<q>${esc(a.comment)}</q>` : ''}</li>`).join('') || '<li class="small muted">Chưa gửi duyệt</li>'}</ul></section>
+      </aside>
+    </div>`;
+
+  const act = async (fn, ok) => { try { await fn(); if (ok) toast(ok); viewDetail(id); } catch (e) { toast(e.message, 'alert'); } };
+  $('#like').onclick = () => act(() => api(`/kaizens/${id}/like`, { method: 'POST' }));
   $('#submit')?.addEventListener('click', () => act(() => api(`/kaizens/${id}/submit`, { method: 'POST' }), 'Đã gửi duyệt'));
-  $('#complete')?.addEventListener('click', () => act(() => api(`/kaizens/${id}/complete`, { method: 'POST' }), 'Đã cập nhật'));
-  $('#up')?.addEventListener('submit', (e) => {
-    e.preventDefault(); const fd = new FormData(e.target); fd.append('phase', 'AFTER');
-    act(() => api(`/kaizens/${id}/attachments`, { method: 'POST', form: fd }), 'Đã tải ảnh');
-  });
-  $('#task')?.addEventListener('submit', (e) => {
-    e.preventDefault(); act(() => api(`/kaizens/${id}/tasks`, { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }));
-  });
-  $('#fin')?.addEventListener('submit', (e) => {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(e.target));
-    act(() => api(`/kaizens/${id}/financials`, { method: 'PUT', body: { investment_cost: +v.investment_cost || 0, annual_saving: +v.annual_saving || 0 } }), 'Đã lưu');
-  });
-  app.querySelectorAll('[data-t]').forEach((b) => b.addEventListener('click', () =>
-    act(() => api(`/kaizens/tasks/${b.dataset.t}/status`, { method: 'PATCH', body: { status: b.dataset.s } }))));
+  $('#complete')?.addEventListener('click', () => act(() => api(`/kaizens/${id}/complete`, { method: 'POST' }), 'Đã cập nhật trạng thái'));
+  $('#up-after')?.addEventListener('change', (e) => { const fd = new FormData(); [...e.target.files].forEach((x) => fd.append('files', x)); fd.append('phase', 'AFTER'); act(() => api(`/kaizens/${id}/attachments`, { method: 'POST', form: fd }), 'Đã tải ảnh After'); });
+  $('#task')?.addEventListener('submit', (e) => { e.preventDefault(); act(() => api(`/kaizens/${id}/tasks`, { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }), 'Đã thêm công việc'); });
+  $('#cmt').addEventListener('submit', (e) => { e.preventDefault(); act(() => api(`/kaizens/${id}/comments`, { method: 'POST', body: Object.fromEntries(new FormData(e.target)) })); });
+  $('#fin')?.addEventListener('submit', (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); act(() => api(`/kaizens/${id}/financials`, { method: 'PUT', body: { investment_cost: +v.investment_cost || 0, annual_saving: +v.annual_saving || 0 } }), 'Đã lưu dự toán'); });
+  $$('[data-t]').forEach((b) => b.addEventListener('click', () => act(() => api(`/kaizens/tasks/${b.dataset.t}/status`, { method: 'PATCH', body: { status: b.dataset.s } }))));
 }
 
-async function viewApprovals() {
-  const list = await api('/approvals/pending');
-  app.innerHTML = `<h2>Chờ tôi phê duyệt (${list.length})</h2>` + (list.map((a) => `
-    <div class="card" data-ap="${a.approval_id}">
-      <div class="row"><a class="grow" href="#/kaizen/${a.idea_id}"><b>${esc(a.title)}</b></a><span class="badge">${esc(a.level)}</span>
-      <span class="badge ${a.waiting_hours >= 48 ? 's-REJECTED' : ''}">${a.waiting_hours}h</span></div>
-      <div class="meta">${esc(a.code)} · ${esc(a.category)} · ${esc(a.workshop)} · ${esc(a.submitter)} · Ước tính ${money(a.estimated_saving)}</div>
-      <textarea placeholder="Ý kiến phản hồi (bắt buộc khi từ chối / yêu cầu sửa)" style="margin-top:8px"></textarea>
-      ${a.level === 'FINANCE' ? `<div class="row"><input data-k="investment_cost" type="number" min="0" placeholder="Chi phí đầu tư xác thực" class="grow" style="width:auto"><input data-k="annual_saving" type="number" min="0" placeholder="Tiết kiệm/năm xác thực" class="grow" style="width:auto"></div>` : ''}
-      <div class="row" style="margin-top:8px">
-        ${a.level === 'LEADER' ? `<button data-a="APPROVE" data-type="QUICK_WIN">✔ Quick Win</button><button data-a="APPROVE" data-type="MAJOR">✔ Dự án lớn → IE</button>`
-          : '<button data-a="APPROVE">✔ Phê duyệt</button>'}
-        <button class="sec" data-a="REVISION">Yêu cầu sửa</button><button class="danger" data-a="REJECT">✖ Từ chối</button>
-      </div></div>`).join('') || '<div class="card">Không có sáng kiến nào chờ duyệt 🎉</div>');
-  app.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', async () => {
-    const card = b.closest('[data-ap]');
-    const body = { action: b.dataset.a, comment: card.querySelector('textarea').value, kaizen_type: b.dataset.type };
-    card.querySelectorAll('[data-k]').forEach((i) => { if (i.value !== '') body[i.dataset.k] = +i.value; });
-    try { const r = await api(`/approvals/${card.dataset.ap}/action`, { method: 'POST', body }); toast('→ ' + (STATUS[r.status] || r.status)); viewApprovals(); }
-    catch (e) { toast(e.message); }
+// ============ new idea wizard ============
+async function viewNew(_, params) {
+  const [cats, master] = await Promise.all([api('/categories'), api('/master')]);
+  let qrLine = null;
+  if (params.get('line')) qrLine = await api('/lines/qr/' + encodeURIComponent(params.get('line'))).catch(() => null);
+  const u = me();
+  const lines = master.lines.filter((l) => !u.wid || l.workshop_id === u.wid);
+  const d = { title: '', category_id: cats[0]?.id, line_id: '', problem: '', waste_types: params.get('waste') ? [params.get('waste')] : [], proposal: '', expected_benefit: '', lean_tool: '', estimated_saving: 0, files: [] };
+  let step = 0;
+  const STEPS = ['Vấn đề tại Gemba', 'Giải pháp cải tiến', 'Hình ảnh & gửi'];
+
+  const draw = () => {
+    app.innerHTML = `<div class="wizard">
+      <div class="page-h"><div class="grow"><h1>Đề xuất cải tiến</h1><p>${qrLine ? `${icon('factory', 16)} ${esc(qrLine.workshop_name)} / <b>${esc(qrLine.name)}</b> (quét QR)` : 'Mô tả điều bạn thấy, điều bạn muốn thay đổi, và chụp ảnh hiện trường.'}</p></div></div>
+      <div class="wsteps">${STEPS.map((s, i) => `<div class="wstep ${i === step ? 'on' : i < step ? 'done' : ''}"><span class="n">${i < step ? '✓' : i + 1}</span><span class="t">${s}</span></div>`).join('')}</div>
+      <form class="card pad stack" id="wf" novalidate>${[stepProblem, stepSolution, stepReview][step]()}</form>
+      <div class="wfoot">${step ? `<button class="btn ghost" id="prev">${icon('chevL', 16)}Quay lại</button>` : '<span></span>'}
+        <div class="row">${step === 2 ? `<button class="btn ghost" id="draft">Lưu nháp</button><button class="btn lg" id="send">${icon('send', 18)}Gửi duyệt</button>` : `<button class="btn lg" id="next">Tiếp tục${icon('arrowR', 18)}</button>`}</div></div></div>`;
+    bind();
+  };
+  const stepProblem = () => `
+    <div class="field"><label class="f" for="w-title">Tiêu đề ngắn gọn *</label><input id="w-title" name="title" maxlength="255" value="${esc(d.title)}" placeholder="VD: Gắn nam châm giữ kéo tại bàn may"></div>
+    <div class="grid g2"><div class="field"><label class="f" for="w-cat">Lĩnh vực *</label><select id="w-cat" name="category_id">${cats.map((c) => `<option value="${c.id}" ${+d.category_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+      ${qrLine ? '' : `<div class="field"><label class="f" for="w-line">Dây chuyền</label><select id="w-line" name="line_id"><option value="">Theo hồ sơ của tôi</option>${lines.map((l) => `<option value="${l.id}" ${+d.line_id === l.id ? 'selected' : ''}>${esc(l.code)} · ${esc(l.name)}</option>`).join('')}</select></div>`}</div>
+    <div class="field"><label class="f" for="w-problem">Hiện trạng / vấn đề bạn thấy *</label><textarea id="w-problem" name="problem" placeholder="Chuyện gì đang xảy ra? Mất bao lâu, xảy ra bao nhiêu lần?">${esc(d.problem)}</textarea></div>
+    <div class="field"><label class="f">Loại lãng phí (chọn một hoặc nhiều)</label><div class="picker">${WASTES.map((w) => `<button type="button" class="pick ${d.waste_types.includes(w.code) ? 'on' : ''}" data-w="${w.code}">${icon(w.icon, 20)}<b>${w.vi}</b><span>${w.desc}</span></button>`).join('')}</div></div>`;
+  const stepSolution = () => `
+    <div class="field"><label class="f" for="w-prop">Giải pháp đề xuất *</label><textarea id="w-prop" name="proposal" placeholder="Bạn muốn thay đổi điều gì? Làm như thế nào?">${esc(d.proposal)}</textarea></div>
+    <div class="field"><label class="f" for="w-ben">Lợi ích mong đợi</label><textarea id="w-ben" name="expected_benefit" style="min-height:64px" placeholder="Giảm bao nhiêu phút, bao nhiêu lỗi, an toàn hơn ra sao…">${esc(d.expected_benefit)}</textarea></div>
+    <div class="field"><label class="f">Công cụ Lean áp dụng</label><div class="picker">${TOOLS.map((t) => `<button type="button" class="pick ${d.lean_tool === t.code ? 'on' : ''}" data-t="${t.code}">${icon(t.icon, 20)}<b>${t.vi}</b><span>${t.tag}</span></button>`).join('')}</div></div>
+    <div class="field" style="max-width:320px"><label class="f" for="w-save">Ước tính tiết kiệm mỗi năm (₫)</label><input id="w-save" name="estimated_saving" type="number" min="0" step="100000" value="${d.estimated_saving || ''}" placeholder="0"><span class="hint">Không chắc? Để trống, Ban Kaizen sẽ ước tính.</span></div>`;
+  const stepReview = () => `
+    <label class="drop" id="drop">${icon('camera', 32)}<div><b>Chụp hoặc chọn ảnh hiện trường (Before)</b></div><div class="small">Ảnh JPG/PNG/WEBP, video MP4. Kéo thả vào đây trên máy tính.</div>
+      <input type="file" id="w-files" accept="image/*,video/*" capture="environment" multiple></label>
+    <div class="previews" id="pv">${d.files.map((f, i) => `<figure>${f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" alt="">` : `<span class="tag">${esc(f.name)}</span>`}<button type="button" data-rm="${i}" aria-label="Xóa ảnh">${icon('x', 12)}</button></figure>`).join('')}</div>
+    <h3 style="margin-top:8px">Kiểm tra lại trước khi gửi</h3>
+    <dl class="review"><dt>Tiêu đề</dt><dd><b>${esc(d.title)}</b></dd><dt>Lĩnh vực</dt><dd>${esc(cats.find((c) => c.id === +d.category_id)?.name)}</dd>
+      <dt>Hiện trạng</dt><dd>${esc(d.problem)}</dd><dt>Giải pháp</dt><dd>${esc(d.proposal)}</dd>
+      <dt>Lãng phí</dt><dd><div class="chips">${wasteTags(d.waste_types, 8) || '—'}</div></dd><dt>Công cụ</dt><dd>${toolTag(d.lean_tool) || '—'}</dd>
+      <dt>Ước tính</dt><dd>${d.estimated_saving ? money(d.estimated_saving) + '/năm' : '—'}</dd></dl>`;
+
+  const collect = () => { const fd = new FormData($('#wf')); for (const [key, v] of fd.entries()) if (key in d && key !== 'files') d[key] = v; };
+  const bind = () => {
+    $$('[data-w]').forEach((b) => (b.onclick = () => { collect(); const c = b.dataset.w; d.waste_types = d.waste_types.includes(c) ? d.waste_types.filter((x) => x !== c) : [...d.waste_types, c]; b.classList.toggle('on'); }));
+    $$('[data-t]').forEach((b) => (b.onclick = () => { d.lean_tool = d.lean_tool === b.dataset.t ? '' : b.dataset.t; $$('[data-t]').forEach((x) => x.classList.toggle('on', x.dataset.t === d.lean_tool)); }));
+    $('#next')?.addEventListener('click', () => {
+      collect();
+      if (step === 0 && (!d.title.trim() || !d.problem.trim())) return toast('Cần nhập tiêu đề và hiện trạng', 'alert');
+      if (step === 1 && !d.proposal.trim()) return toast('Cần mô tả giải pháp đề xuất', 'alert');
+      step++; draw(); window.scrollTo(0, 0);
+    });
+    $('#prev')?.addEventListener('click', () => { if (step < 2) collect(); step--; draw(); });
+    const fi = $('#w-files'), drop = $('#drop');
+    const addFiles = (list) => { d.files.push(...[...list].slice(0, 10)); draw(); };
+    if (fi) {
+      fi.onchange = () => addFiles(fi.files);
+      drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('over'); };
+      drop.ondragleave = () => drop.classList.remove('over');
+      drop.ondrop = (e) => { e.preventDefault(); addFiles(e.dataTransfer.files); };
+      $$('[data-rm]').forEach((b) => (b.onclick = () => { d.files.splice(+b.dataset.rm, 1); draw(); }));
+    }
+    const send = async (submit) => {
+      const fields = { title: d.title, category_id: d.category_id, problem: d.problem, proposal: d.proposal, expected_benefit: d.expected_benefit,
+        estimated_saving: d.estimated_saving || 0, lean_tool: d.lean_tool, waste_types: d.waste_types.join(','), submit: String(submit) };
+      if (qrLine) fields.line_qr = params.get('line'); else if (d.line_id) fields.line_id = d.line_id;
+      const item = { client_uuid: crypto.randomUUID(), fields, files: d.files };
+      $$('.wfoot button').forEach((b) => (b.disabled = true));
+      if (!navigator.onLine) { await queue(item); toast('Đang ngoại tuyến. Đã lưu, sẽ tự gửi khi có mạng', 'wifiOff'); location.hash = '#/'; return; }
+      try {
+        const r = await api('/kaizens', { method: 'POST', form: toForm(item) });
+        toast(submit ? `Đã gửi ${r.code}. Tổ trưởng sẽ phản hồi trong 48 giờ` : `Đã lưu nháp ${r.code}`); location.hash = '#/kaizen/' + r.id;
+      } catch (err) {
+        if (!err.status || err.status >= 500) { await queue(item); toast('Mất kết nối. Đã lưu ngoại tuyến', 'wifiOff'); location.hash = '#/'; }
+        else { toast(err.message, 'alert'); $$('.wfoot button').forEach((b) => (b.disabled = false)); }
+      }
+    };
+    $('#send')?.addEventListener('click', () => send(true));
+    $('#draft')?.addEventListener('click', () => send(false));
+  };
+  draw();
+}
+
+// ============ analytics ============
+async function viewAnalytics(_, params) {
+  const period = params.get('p') || 'all';
+  const from = period === 'all' ? '' : new Date(Date.now() - +period * 864e5).toISOString().slice(0, 10);
+  const qs = from ? '?from=' + from : '';
+  const canRoi = ['IE', 'FINANCE', 'DIRECTOR', 'ADMIN', 'LEADER'].includes(role());
+  const [s, wastes, trend, roi] = await Promise.all([api('/reports/summary' + qs), api('/reports/wastes' + qs), api('/reports/trend'), canRoi ? api('/reports/roi' + qs).catch(() => []) : Promise.resolve([])]);
+  const bs = Object.fromEntries(s.by_status.map((x) => [x.status, +x.total]));
+  const g = (...k) => k.reduce((a, x) => a + (bs[x] || 0), 0);
+  const funnel = [
+    { label: 'Đã gửi', value: s.total_ideas },
+    { label: 'Qua sơ duyệt', value: g('QUICK_WIN', 'PENDING_IE', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
+    { label: 'Đã triển khai', value: g('QUICK_WIN', 'IMPLEMENTING', 'PENDING_FINANCE', 'COMPLETED') },
+    { label: 'Hoàn thành', value: g('COMPLETED') },
+  ];
+  const months = trend.map((t) => ({ label: 'Tháng ' + t.month.slice(5) + '/' + t.month.slice(0, 4), short: 'T' + +t.month.slice(5), submitted: +t.submitted, completed: +t.completed }));
+  const net = s.verified_saving - s.verified_investment;
+  const chip = (p, l) => `<a class="chip ${period === p ? 'on' : ''}" href="#/analytics?p=${p}">${l}</a>`;
+
+  app.innerHTML = `
+    <div class="page-h"><div class="grow"><h1>Phân tích & ROI</h1><p>Hiệu quả chương trình Kaizen: số lượng, tốc độ, lãng phí được loại bỏ và giá trị tài chính đã xác thực.</p></div>
+      <div class="chips">${chip('30', '30 ngày')}${chip('90', 'Quý')}${chip('365', '12 tháng')}${chip('all', 'Tất cả')}</div></div>
+    <section class="grid g4" style="margin-bottom:16px">
+      ${kpi('bulb', 'Sáng kiến đã gửi', s.total_ideas, `${s.participants} người tham gia`)}
+      ${kpi('check', 'Hoàn thành', s.completed, `${s.quick_wins} Quick Win · ${s.major_projects} dự án`)}
+      ${kpi('coins', 'Tiết kiệm đã xác thực', moneyShort(s.verified_saving), `Đầu tư ${moneyShort(s.verified_investment)}`)}
+      ${kpi('trend', 'Lợi ích ròng năm đầu', moneyShort(net), s.verified_investment ? `ROI ${Math.round(net / s.verified_investment * 100)}%` : 'Chưa có dự án xác thực')}
+    </section>
+    <section class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);margin-bottom:16px" id="row1">
+      <div class="card"><div class="card-h"><h2>Đề xuất và hoàn thành theo tháng</h2><div class="legend"><span><i class="sw s1"></i>Đã gửi</span><span><i class="sw s2"></i>Hoàn thành</span></div></div>
+        <div class="card-b">${columnChart(months, [{ key: 'submitted', label: 'Đã gửi', cls: 's1' }, { key: 'completed', label: 'Hoàn thành', cls: 's2' }])}
+        <details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">Xem dạng bảng</summary><div class="table-wrap"><table><tr><th>Tháng</th><th class="r">Đã gửi</th><th class="r">Hoàn thành</th></tr>${months.map((m2) => `<tr><td>${m2.label}</td><td class="r">${m2.submitted}</td><td class="r">${m2.completed}</td></tr>`).join('')}</table></div></details></div></div>
+      <div class="card"><div class="card-h"><h2>Tỷ lệ hoàn thành</h2></div><div class="card-b stack" style="align-items:center;text-align:center">
+        ${ring(s.completion_rate, 132)}<p class="small muted">Tỷ lệ sáng kiến được duyệt đã hoàn thành.<br>Thời gian sơ duyệt trung bình <b style="color:var(--ink)">${s.avg_leader_response_hours} giờ</b> (mục tiêu 48 giờ).</p></div></div>
+    </section>
+    <section class="grid g2" style="margin-bottom:16px">
+      <div class="card"><div class="card-h"><h2>Lãng phí được tấn công</h2><span class="small muted">Số sáng kiến</span></div><div class="card-b">
+        ${wastes.length ? barList(wastes.map((w) => ({ ...w, label: WASTE[w.waste]?.vi || w.waste, value: +w.total })), { icon: (r) => icon(WASTE[r.waste]?.icon || 'alert', 14), cls: 'seq' }) : empty('chart', 'Chưa có dữ liệu', 'Hãy gắn loại lãng phí khi gửi đề xuất.')}</div></div>
+      <div class="card"><div class="card-h"><h2>Phễu chuyển đổi</h2><span class="small muted">Từ ý tưởng đến kết quả</span></div><div class="card-b">${barList(funnel, { cls: 's1' })}
+        <h3 style="margin:20px 0 10px">Theo lĩnh vực</h3>${barList(s.by_category.map((c) => ({ label: c.category, value: +c.total })), { cls: 'seq' })}</div></div>
+    </section>
+    ${roi.length ? `<section class="card"><div class="card-h"><h2>ROI theo xưởng và tháng</h2><span class="small muted">Chỉ gồm dự án đã được Kế toán xác thực</span></div>
+      <div class="table-wrap"><table><tr><th>Tháng</th><th>Xưởng</th><th class="r">Dự án</th><th class="r">Đầu tư</th><th class="r">Tiết kiệm / năm</th><th class="r">ROI</th><th class="r">Hoàn vốn</th></tr>
+      ${roi.map((x) => `<tr><td class="mono">${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="r">${x.projects}</td><td class="r">${money(x.investment)}</td><td class="r">${money(x.annual_saving)}</td><td class="r"><b style="color:var(--good)">${x.roi_percent ?? '—'}%</b></td><td class="r">${x.payback_months ?? '—'} tháng</td></tr>`).join('')}</table></div></section>` : ''}`;
+  if (innerWidth < 980) $('#row1').style.gridTemplateColumns = 'minmax(0,1fr)';
+}
+
+// ============ leaderboard ============
+async function viewLeaderboard() {
+  const [rows, m] = await Promise.all([api('/reports/leaderboard'), api('/auth/me')]);
+  const mb = beltOf(m.total_points || 0), top = rows.slice(0, 3);
+  const pod = (r, i) => { if (!r) return '<div></div>'; const b = beltOf(r.points); return `<div class="card pod ${i === 0 ? 'first' : ''}">
+    <span class="rank">HẠNG ${i + 1}</span>${beltSvg(b, i === 0 ? 72 : 56)}<b>${esc(r.full_name)}</b><span class="small muted">${esc(r.workshop || ROLES[r.role])}</span>
+    <span class="pts">${r.points}<small class="muted" style="font-size:13px"> điểm</small></span><span class="small muted">${b.vi} · ${r.completed}/${r.ideas} hoàn thành</span></div>`; };
+  app.innerHTML = `
+    <div class="page-h"><div class="grow"><h1>Bảng vàng Kaizen</h1><p>Vinh danh những người tạo ra cải tiến thực sự. Điểm chỉ được cộng khi sáng kiến hoàn thành và được xác nhận.</p></div></div>
+    <section class="podium" style="margin-bottom:24px">${pod(top[1], 1)}${pod(top[0], 0)}${pod(top[2], 2)}</section>
+    <section class="card" style="margin-bottom:28px"><div class="card-h"><h2>Xếp hạng</h2></div><div class="table-wrap"><table>
+      <tr><th>#</th><th>Nhân viên</th><th>Cấp đai</th><th class="r">Sáng kiến</th><th class="r">Hoàn thành</th><th class="r">Thưởng</th><th class="r">Điểm</th></tr>
+      ${rows.map((r, i) => { const b = beltOf(r.points); return `<tr class="${r.user_id === m.id ? 'me' : ''}"><td class="mono">${i + 1}</td>
+        <td><div class="row" style="flex-wrap:nowrap">${avatar(r.full_name)}<span><b>${esc(r.full_name)}</b><br><span class="small muted">${esc(r.workshop || ROLES[r.role])}</span></span></div></td>
+        <td><div class="row" style="flex-wrap:nowrap;gap:6px">${beltSvg(b, 26)}<span class="small">${b.vi}</span></div></td>
+        <td class="r">${r.ideas}</td><td class="r">${r.completed}</td><td class="r">${r.amount ? money(r.amount) : '—'}</td><td class="r"><b>${r.points}</b></td></tr>`; }).join('')}</table></div></section>
+    <section><div class="eyebrow">Lộ trình phát triển</div><h2 style="margin:4px 0 4px;font-size:22px">5 cấp đai Kaizen</h2><p class="muted" style="margin-bottom:16px">Mô phỏng hệ thống đai Lean Six Sigma: điểm cải tiến tích lũy quyết định cấp đai của bạn.</p>
+      <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep ${i === mb.index ? 'me' : ''}"><div class="row">${beltSvg(b, 48)}<span class="grow"></span>${i === mb.index ? '<span class="pill t-good">Bạn ở đây</span>' : ''}</div>
+        <span class="lvl">Cấp ${i + 1} · từ ${b.min} điểm</span><h3>${b.vi}</h3><p>${b.desc}</p><span class="small" style="font-weight:700;color:var(--brand)">${b.step}</span></div>`).join('')}</div></section>`;
+}
+
+// ============ academy ============
+function viewAcademy() {
+  app.innerHTML = `
+    <div class="page-h"><div class="grow"><h1>Học viện Lean</h1><p>Kiến thức nền tảng để nhìn ra lãng phí và đề xuất cải tiến tốt hơn. Mỗi mục đều dẫn thẳng đến form đề xuất.</p></div></div>
+    <nav class="acad-nav chips"><a class="chip" href="#principles" data-jump="principles">10 nguyên tắc</a><a class="chip" href="#wastes" data-jump="wastes">8 lãng phí</a><a class="chip" href="#tools" data-jump="tools">Công cụ Lean</a><a class="chip" href="#belts" data-jump="belts">Lộ trình đai</a></nav>
+    <section class="acad-sec" id="principles"><div class="eyebrow">Tư duy</div><h2>10 nguyên tắc Kaizen xây dựng hệ thống tốt hơn</h2><p>Kaizen (改善) nghĩa là "thay đổi để tốt hơn". Đây là những nguyên tắc giúp cải tiến trở thành thói quen hằng ngày.</p>
+      <div class="principles">${PRINCIPLES.map(([ic, t, d2], i) => `<div class="card prin"><span class="p-n">${String(i + 1).padStart(2, '0')}</span><span class="p-ic">${icon(ic, 22)}</span><h3>${t}</h3><p>${d2}</p></div>`).join('')}</div></section>
+    <section class="acad-sec" id="wastes"><div class="eyebrow">Nhận diện</div><h2>8 lãng phí trong Lean (DOWNTIME)</h2><p>Mọi hoạt động không tạo giá trị cho khách hàng là lãng phí. Tập trung vào giá trị, loại bỏ phần không tạo giá trị.</p>
+      <div class="wastes">${WASTES.map((w) => `<div class="card waste"><div class="w-h"><span class="w-ic">${icon(w.icon, 22)}</span><div><b>${w.vi}</b><span>${w.en}</span></div></div><p class="small">${w.desc}</p>
+        <p class="ex"><b>Ví dụ:</b> ${w.example}</p><a class="small" style="font-weight:700" href="#/new?waste=${w.code}">Đề xuất loại bỏ ${icon('arrowR', 14)}</a></div>`).join('')}</div></section>
+    <section class="acad-sec" id="tools"><div class="eyebrow">Phương pháp</div><h2>Công cụ Lean tại nơi làm việc</h2><p>Công cụ thông minh hơn, nơi làm việc tốt hơn, cải tiến liên tục.</p>
+      <div class="tools">${GEMBA_TOOLS.map(([ic, t, tag, d2]) => `<div class="card tool"><div class="t-h"><span class="t-ic">${icon(ic, 22)}</span><div><span>${tag}</span><b>${t}</b></div></div><p class="small">${d2}</p></div>`).join('')}
+        ${TOOLS.filter((t) => t.code !== 'OTHER').map((t) => `<div class="card tool"><div class="t-h"><span class="t-ic">${icon(t.icon, 22)}</span><div><span>${t.tag}</span><b>${t.vi}</b></div></div><p class="small">${t.desc}</p><ul>${t.points.map((p) => `<li>${p}</li>`).join('')}</ul></div>`).join('')}</div></section>
+    <section class="acad-sec" id="belts"><div class="eyebrow">Phát triển</div><h2>Hành trình đai Kaizen</h2><p>Học nền tảng → Hỗ trợ quy trình → Thực hành & cải tiến → Dẫn dắt & kèm cặp → Chiến lược & chuyển đổi.</p>
+      <div class="belts">${BELTS.map((b, i) => `<div class="card beltstep">${beltSvg(b, 48)}<span class="lvl">Bước ${i + 1}</span><h3>${b.step}</h3><p>${b.vi}: ${b.desc}</p></div>`).join('')}</div></section>
+    <div class="card motto"><b>Thay đổi nhỏ hôm nay. Hệ thống mạnh hơn ngày mai.</b><span>Tiếp tục cải tiến, tiếp tục phát triển.</span><p style="margin-top:14px"><a class="btn" href="#/new">${icon('camera', 18)}Đề xuất cải tiến</a></p></div>`;
+  $$('[data-jump]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); document.getElementById(a.dataset.jump).scrollIntoView({ behavior: 'smooth' }); }));
+}
+
+// ============ admin ============
+async function viewAdmin() {
+  if (role() !== 'ADMIN') { app.innerHTML = `<div class="card">${empty('shield', 'Chỉ dành cho quản trị viên', 'Bạn không có quyền truy cập trang này.')}</div>`; return; }
+  const [users, master] = await Promise.all([api('/admin/users'), api('/master')]);
+  const ws = Object.fromEntries(master.workshops.map((w) => [w.id, w]));
+  const base = location.href.split('#')[0];
+  app.innerHTML = `
+    <div class="page-h"><div class="grow"><h1>Quản trị hệ thống</h1><p>Người dùng, phân quyền và mã QR cho từng dây chuyền.</p></div></div>
+    <section class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);margin-bottom:16px" id="adm1">
+      <div class="card"><div class="card-h"><h2>Người dùng</h2><span class="muted small">${users.length} tài khoản</span></div><div class="table-wrap"><table>
+        <tr><th>Mã</th><th>Họ tên</th><th>Vai trò</th><th>Xưởng</th><th>Trạng thái</th></tr>
+        ${users.map((x) => `<tr><td class="mono">${esc(x.employee_code)}</td><td>${esc(x.full_name)}</td><td>${esc(ROLES[x.role] || x.role)}</td><td>${esc(ws[x.workshop_id]?.name || '—')}</td><td>${x.is_active === false ? '<span class="pill t-bad">Khóa</span>' : '<span class="pill t-good">Hoạt động</span>'}</td></tr>`).join('')}</table></div></div>
+      <form class="card pad stack" id="nu" style="gap:10px"><h2>Thêm người dùng</h2>
+        <div class="field"><label class="f" for="nu-code">Mã nhân viên</label><input id="nu-code" name="employee_code" required></div>
+        <div class="field"><label class="f" for="nu-name">Họ tên</label><input id="nu-name" name="full_name" required></div>
+        <div class="field"><label class="f" for="nu-role">Vai trò</label><select id="nu-role" name="role">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div class="field"><label class="f" for="nu-ws">Xưởng</label><select id="nu-ws" name="workshop_id"><option value="">—</option>${master.workshops.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select></div>
+        <div class="field"><label class="f" for="nu-pw">Mật khẩu ban đầu</label><input id="nu-pw" name="password" type="text" minlength="6" required value="123456"></div>
+        <button class="btn">${icon('plus', 16)}Tạo tài khoản</button></form>
+    </section>
+    <section class="card"><div class="card-h"><h2>Dây chuyền & mã QR</h2><span class="muted small">In mã QR dán tại chuyền. Công nhân quét là mở form đề xuất đúng vị trí.</span></div><div class="table-wrap"><table>
+      <tr><th>Mã</th><th>Dây chuyền</th><th>Xưởng</th><th>Liên kết QR</th><th></th></tr>
+      ${master.lines.map((l) => `<tr><td class="mono">${esc(l.code)}</td><td>${esc(l.name)}</td><td>${esc(ws[l.workshop_id]?.name)}</td><td class="mono small" style="max-width:320px;overflow-wrap:anywhere">${esc(base)}#/new?line=${esc(l.qr_token)}</td>
+        <td><button class="btn ghost sm" data-copy="${esc(base)}#/new?line=${esc(l.qr_token)}">${icon('copy', 14)}Sao chép</button></td></tr>`).join('')}</table></div>
+      <form class="card-b row" id="nl" style="border-top:1px solid var(--line-2)"><select name="parent_id" style="width:auto" aria-label="Xưởng">${master.workshops.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
+        <input name="code" placeholder="Mã (VD: L03)" required style="width:140px" aria-label="Mã dây chuyền"><input name="name" placeholder="Tên dây chuyền" required class="grow" style="flex:1 1 180px" aria-label="Tên dây chuyền"><button class="btn">${icon('plus', 16)}Thêm chuyền</button></form></section>`;
+  if (innerWidth < 980) $('#adm1').style.gridTemplateColumns = 'minmax(0,1fr)';
+  $('#nu').onsubmit = async (e) => {
+    e.preventDefault(); const v = Object.fromEntries(new FormData(e.target));
+    v.workshop_id = v.workshop_id ? +v.workshop_id : null; v.factory_id = master.factories[0]?.id ?? null;
+    try { await api('/admin/users', { method: 'POST', body: v }); toast('Đã tạo tài khoản ' + v.employee_code); viewAdmin(); } catch (err) { toast(err.message, 'alert'); }
+  };
+  $('#nl').onsubmit = async (e) => {
+    e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); v.parent_id = +v.parent_id;
+    try { await api('/admin/lines', { method: 'POST', body: v }); toast('Đã thêm dây chuyền'); viewAdmin(); } catch (err) { toast(err.message, 'alert'); }
+  };
+  $$('[data-copy]').forEach((b) => (b.onclick = async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast('Đã sao chép liên kết'); }
+    catch { const td = b.closest('tr').children[3]; const r = document.createRange(); r.selectNodeContents(td); getSelection().removeAllRanges(); getSelection().addRange(r); toast('Hãy nhấn Ctrl+C để sao chép', 'copy'); }
   }));
 }
 
-async function viewDashboard() {
-  const s = await api('/reports/summary');
-  const roi = ['IE', 'FINANCE', 'DIRECTOR', 'ADMIN', 'LEADER'].includes(role()) ? await api('/reports/roi').catch(() => []) : [];
-  const me = await api('/auth/me');
-  const max = Math.max(1, ...s.by_category.map((c) => c.total));
-  app.innerHTML = `<h2>Dashboard Kaizen</h2>
-    <div class="stats">
-      ${[['Tổng ý tưởng', s.total_ideas], ['Hoàn thành', s.completed], ['Tỷ lệ hoàn thành', s.completion_rate + ' %'], ['Đang chờ duyệt', s.pending_approval],
-        ['Đang triển khai', s.in_progress], ['Quick Win / Dự án', `${s.quick_wins} / ${s.major_projects}`], ['Người tham gia', s.participants],
-        ['TG sơ duyệt TB', s.avg_leader_response_hours + ' h'], ['Tiết kiệm ước tính', money(s.estimated_saving)],
-        ['Tiết kiệm đã xác thực', money(s.verified_saving)], ['Điểm của tôi', me.total_points]]
-        .map(([l, v]) => `<div class="stat"><b>${esc(v)}</b><span>${l}</span></div>`).join('')}
-    </div>
-    <div class="card" style="margin-top:12px"><h3>Theo lĩnh vực</h3>${s.by_category.map((c) => `
-      <div class="row"><span style="width:180px">${esc(c.category)}</span><div class="grow"><div class="bar" style="width:${(c.total / max) * 100}%"></div></div><b>${c.total}</b></div>`).join('') || '<span class="meta">Chưa có dữ liệu</span>'}</div>
-    <div class="card"><h3>Top đóng góp</h3><table><tr><th>Nhân viên</th><th>Xưởng</th><th class="num">Ý tưởng</th><th class="num">Điểm</th></tr>
-      ${s.top_contributors.map((t) => `<tr><td>${esc(t.full_name)}</td><td>${esc(t.workshop)}</td><td class="num">${t.ideas}</td><td class="num">${t.points}</td></tr>`).join('')}</table></div>
-    ${roi.length ? `<div class="card"><h3>ROI theo xưởng / tháng</h3><div class="table-wrap"><table><tr><th>Tháng</th><th>Xưởng</th><th class="num">Dự án</th><th class="num">Đầu tư</th><th class="num">Tiết kiệm/năm</th><th class="num">ROI</th><th class="num">Hoàn vốn</th></tr>
-      ${roi.map((x) => `<tr><td>${esc(x.month)}</td><td>${esc(x.workshop)}</td><td class="num">${x.projects}</td><td class="num">${money(x.investment)}</td><td class="num">${money(x.annual_saving)}</td><td class="num">${x.roi_percent ?? '—'} %</td><td class="num">${x.payback_months ?? '—'} th</td></tr>`).join('')}</table></div></div>` : ''}`;
-}
-
-// ---------------- boot ----------------
+// ============ boot ============
 if (!DEMO && 'serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
-if (DEMO) document.body.classList.add('demo');
 updateNet();
 render();
-sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`));
-setInterval(() => sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`)), 30000);
+sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh'));
+setInterval(() => sync((k) => toast(`Đã đồng bộ ${k} sáng kiến`, 'refresh')), 30000);
 
 </script>
 </body>

@@ -54,10 +54,13 @@ Xem `backend/internal/db/migrations/001_init.sql`. Ngoài 7 bảng nghiệp vụ
 | Kaizen | `POST/GET /kaizens`, `GET/PUT /kaizens/{id}`, `POST /kaizens/{id}/submit`, `POST /kaizens/{id}/complete`, `POST /kaizens/{id}/attachments`, `PUT /kaizens/{id}/financials`, `GET /attachments/{id}/file` |
 | Approvals | `GET /approvals/pending`, `POST /approvals/{approval_id}/action` `{action: APPROVE\|REJECT\|REVISION, comment, kaizen_type, assignee_id, investment_cost, annual_saving}` |
 | Kanban | `GET/POST /kaizens/{id}/tasks`, `PATCH /kaizens/tasks/{task_id}/status` |
-| Reports | `GET /reports/summary`, `GET /reports/roi` (lọc `from`, `to`, `workshop_id`) |
+| Reports | `GET /reports/summary`, `/reports/roi`, `/reports/trend`, `/reports/wastes`, `/reports/leaderboard`, `/reports/export.csv` (lọc `from`, `to`, `workshop_id`) |
+| Cộng tác | `POST /kaizens/{id}/comments`, `POST /kaizens/{id}/like`, `GET /activity` |
 | Master/Admin | `GET /categories`, `GET /master`, `GET /lines/qr/{token}`, `GET/POST /admin/users`, `POST /admin/{factories,workshops,lines,categories}` |
 
-`GET /kaizens` hỗ trợ `page`, `page_size` (≤100), `status` (danh sách cách bởi dấu phẩy), `workshop_id`, `category_id`, `from`, `to`, `q`, `mine`.
+`GET /kaizens` hỗ trợ `page`, `page_size` (≤100), `status` (danh sách cách bởi dấu phẩy), `workshop_id`, `category_id`, `waste`, `type`, `from`, `to`, `q`, `mine`.
+
+Migration `002_lean.sql` thêm `waste_types` (8 lãng phí), `lean_tool`, bảng `kaizen_comments`, `kaizen_likes`. Cấp đai được tính từ tổng điểm thưởng (0 / 30 / 100 / 300 / 800).
 
 ## 5. Phân quyền dữ liệu
 

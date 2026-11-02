@@ -6,22 +6,22 @@ import (
 )
 
 type Config struct {
-	Addr            string
-	DatabaseURL     string
-	JWTSecret       string
-	JWTTTLHours     int
-	StorageDir      string
-	WebDir          string
-	MaxUploadMB     int64
-	TelegramToken   string
-	TelegramChatID  string
-	WebhookURL      string // generic webhook (Zalo OA bridge, Slack, n8n ...)
-	AdminCode       string
-	AdminPassword   string
-	SeedDemo        bool
-	QuickWinPoints  int
-	MajorPoints     int
-	RewardRatePct   float64 // % of verified annual saving paid as bonus
+	Addr           string
+	DatabaseURL    string
+	JWTSecret      string
+	JWTTTLHours    int
+	StorageDir     string
+	WebDir         string
+	MaxUploadMB    int64
+	TelegramToken  string
+	TelegramChatID string
+	WebhookURL     string // generic webhook (Zalo OA bridge, Slack, n8n ...)
+	AdminCode      string
+	AdminPassword  string
+	SeedDemo       bool
+	QuickWinPoints int
+	MajorPoints    int
+	RewardRatePct  float64 // % of verified annual saving paid as bonus
 }
 
 func Load() Config {

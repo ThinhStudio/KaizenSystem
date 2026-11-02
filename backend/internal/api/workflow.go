@@ -105,7 +105,8 @@ func (s *Server) pendingApprovals(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := queryMaps(r.Context(), s.DB, `SELECT ap.id AS approval_id, ap.level, ap.created_at AS pending_since,
 		i.id AS idea_id, i.code, i.title, i.status, i.kaizen_type, i.estimated_saving::float8 AS estimated_saving,
-		w.name AS workshop, u.full_name AS submitter, c.name AS category,
+		w.name AS workshop, u.full_name AS submitter, c.name AS category, i.problem, i.proposal, i.waste_types, i.lean_tool,
+		(SELECT a.id FROM kaizen_attachments a WHERE a.idea_id=i.id AND a.content_type LIKE 'image/%' ORDER BY a.id LIMIT 1) AS thumb_id,
 		round(extract(epoch FROM now()-ap.created_at)/3600)::int AS waiting_hours
 		FROM kaizen_approvals ap JOIN kaizen_ideas i ON i.id=ap.idea_id
 		JOIN workshops w ON w.id=i.workshop_id JOIN users u ON u.id=i.submitter_id
@@ -466,4 +467,3 @@ func (s *Server) grantRewards(ctx context.Context, tx pgx.Tx, ideaID, by int64) 
 		VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`, ideaID, submitter, points, amount, reason, by)
 	return err
 }
-
